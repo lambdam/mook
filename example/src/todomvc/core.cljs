@@ -1,10 +1,12 @@
 (ns todomvc.core
   (:require ["react" :as react]
-            ["react-dom" :as react-dom]))
+            ["react-dom" :as react-dom]
+            [cljs-bean.core :as b]))
 
 (defn init! []
   (react-dom/render
-    (react/createElement "h1" nil "Hello from React")
+    (react/createElement "h1" (b/->js {:style {:color "red"}})
+                         "Hello from React")
     (js/document.getElementById "main-app")))
 
 (defn main! []
