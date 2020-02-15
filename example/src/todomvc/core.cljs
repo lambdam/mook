@@ -1,13 +1,21 @@
 (ns todomvc.core
-  (:require ["react" :as react]
-            ["react-dom" :as react-dom]
-            [cljs-bean.core :as b]))
+  (:require [cljs-bean.core :as b]
+            [todomvc.components :as c]
+            [todomvc.lib.react :as r]
+            [todomvc.state :as state]))
+
+(defn root-with-context []
+  ((:provider state/app-state-context) nil
+   (r/create-element c/root)))
 
 (defn init! []
-  (react-dom/render
-    (react/createElement "h1" (b/->js {:style {:color "red"}})
-                         "Hello from React")
+  (r/render
+    (r/create-element root-with-context)
     (js/document.getElementById "main-app")))
+
+(comment
+  (init!)
+  )
 
 (defn main! []
   (init!))

@@ -1,8 +1,9 @@
 (ns todomvc.lib.react
-  (:require-macros [todomvc.lib.react :refer [def-elems]])
   (:require ["react" :as react]
             ["react-dom" :as react-dom]
-            [cljs-bean.core :as b]))
+            [cljs-bean.core :as b]
+            [clojure.string :as str])
+  (:require-macros [todomvc.lib.react :refer [def-elems]]))
 
 (defn create-element
   ([comp]
@@ -59,3 +60,15 @@
 
 (def use-context
   (.-useContext react))
+
+(def use-ref
+  (.-useRef react))
+
+(defn classes [prop-map]
+  (->> (reduce (fn [acc [prop pred?]]
+                 (if pred?
+                   (conj acc (name prop))
+                   acc))
+               []
+               prop-map)
+       (str/join " ")))
