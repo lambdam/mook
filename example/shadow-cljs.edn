@@ -1,5 +1,6 @@
 {:source-paths ["src"]
  :dependencies [[cljs-bean "1.5.0"]
+                [orchestra "2019.02.06-1"]
                 [funcool/promesa "5.1.0"]]
  :dev-http {8080 "public/"}
  :builds {:app {:target :browser
