@@ -64,6 +64,12 @@
 (def use-ref
   (.-useRef react))
 
+(def use-state
+  (.-useState react))
+
+(def use-effect
+  (.-useEffect react))
+
 (defn classes [prop-map]
   (->> (reduce (fn [acc [prop pred?]]
                  (if pred?

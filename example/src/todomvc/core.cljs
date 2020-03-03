@@ -5,7 +5,7 @@
             [todomvc.state :as state]))
 
 (defn root-with-context []
-  ((:provider state/app-state-context) nil
+  ((:provider state/app-state-context) {:value state/app-state*}
    (r/create-element c/root)))
 
 (defn init! []

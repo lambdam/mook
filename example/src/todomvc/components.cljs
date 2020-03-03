@@ -1,5 +1,7 @@
 (ns todomvc.components
   (:require [cljs-bean.core :as b]
+            [clojure.string :as str]
+            [todomvc.lib.keys :as k]
             [todomvc.lib.react :as r]
             [todomvc.state :as state]))
 
@@ -7,14 +9,14 @@
 (def ^:const enter-key 13)
 
 (defn todo-item [props]
-  (let [{:keys [title]} (b/->clj props)
+  (let [{:todo/keys [title completed?]} (b/->clj props)
         edit-field-ref (r/use-ref nil)]
     (r/li {:className (r/classes {:completed false
                                   :editing false})}
       (r/div {:className "view"}
         (r/input {:className "toggle"
                   :type "checkbox"
-                  :checked true
+                  :checked completed?
                   :onChange (fn [])})
         (r/label {:onDoubleClick (fn [])}
                  title)
@@ -25,16 +27,34 @@
                 ;; :value nil
                 :onBlur (fn [])
                 :onChange (fn [])
-                :onKeyDown (fn [])}))))
+                :onKeyDown (fn [e]
+                             (js/console.log e))}))))
+
+(defn new-todo-form [props]
+  (let [{:react-context/keys [app-state*]} (state/use-states)
+        [title set-title] (r/use-state "")]
+    (r/header {:className "header"}
+      (r/h1 "todos")
+      (r/input {:className "new-todo"
+                :placeholder "What needs to be done?"
+                :value title
+                :onKeyDown #(case (-> % .-keyCode k/code->key)
+                             :event/enter-key (let [value (str/trim title)]
+                                                (.preventDefault %)
+                                                (when-not (str/blank? value)
+                                                  (swap! app-state* update :state/todos conj #:todo{:id (random-uuid)
+                                                                                                    :title title
+                                                                                                    :completed? false})))
+                             nil)
+                :onChange #(-> % .-target .-value set-title)
+                :autoFocus true}))))
 
 (defn root [props]
-  (let [{:keys [app-state*]} (state/use-states)
-        todos (:todos @state/app-state*)]
+  (let [{:react-context/keys [app-state*]} (state/use-states)
+        todos (:state/todos @app-state*)]
     (r/fragment
       (r/section {:className "todoapp"}
-        (r/header {:className "header"}
-          (r/h1 "todos")
-          (r/input {:className "new-todo" :placeholder "What needs to be done?" :autoFocus true}))
+        (r/create-element new-todo-form)
         (when (not (empty? todos))
           (r/fragment
             (r/section {:className "main"}
@@ -42,11 +62,12 @@
               (r/label {:htmlFor "toggle-all"}
                 "Mark all as complete")
               (r/ul {:className "todo-list"}
-                (to-array (mapv #(->> (merge % {:key (-> %
-                                                         (select-keys [:id :completed?])
-                                                         str)})
-                                      (r/create-element todo-item))
-                                todos))))
+                    (->> todos
+                         (mapv #(->> (merge % {:key (-> %
+                                                        (select-keys [:todo/id :todo/completed?])
+                                                        str)})
+                                     (r/create-element todo-item)))
+                         to-array)))
             (r/footer {:className "footer"}
               (r/span {:className "todo-count"}
                 (let [len (count todos)]
