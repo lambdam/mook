@@ -1,5 +1,6 @@
 (ns todomvc.core
   (:require [cljs-bean.core :as b]
+            [orchestra-cljs.spec.test :as st]
             [todomvc.components :as c]
             [todomvc.lib.react :as r]
             [todomvc.state :as state]))
@@ -22,3 +23,5 @@
 
 (defn reload! []
   (init!))
+
+(st/instrument)

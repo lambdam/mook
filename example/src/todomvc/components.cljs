@@ -1,6 +1,7 @@
 (ns todomvc.components
   (:require [cljs-bean.core :as b]
             [clojure.string :as str]
+            [todomvc.actions :as a]
             [todomvc.lib.keys :as k]
             [todomvc.lib.react :as r]
             [todomvc.state :as state]))
@@ -31,7 +32,7 @@
                              (js/console.log e))}))))
 
 (defn new-todo-form [props]
-  (let [{:react-context/keys [app-state*]} (state/use-states)
+  (let [data (state/use-states)
         [title set-title] (r/use-state "")]
     (r/header {:className "header"}
       (r/h1 "todos")
@@ -42,9 +43,7 @@
                              :event/enter-key (let [value (str/trim title)]
                                                 (.preventDefault %)
                                                 (when-not (str/blank? value)
-                                                  (swap! app-state* update :state/todos conj #:todo{:id (random-uuid)
-                                                                                                    :title title
-                                                                                                    :completed? false})))
+                                                  (a/create-new-todo>> (assoc data :component/title value))))
                              nil)
                 :onChange #(-> % .-target .-value set-title)
                 :autoFocus true}))))
