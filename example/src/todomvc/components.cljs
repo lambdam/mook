@@ -6,9 +6,6 @@
             [todomvc.lib.react :as r]
             [todomvc.state :as state]))
 
-(def ^:const escape-key 27)
-(def ^:const enter-key 13)
-
 (defn todo-item [props]
   (let [states (state/use-states)
         {:entity.todo/keys [id title completed?]} (b/->clj props)
@@ -24,9 +21,12 @@
                                                              :entity.todo/id
                                                              id)))})
         (r/label {:onDoubleClick (fn [])}
-                 title)
+          title)
         (r/button {:className "destroy"
-                   :onClick (fn [])}))
+                   :onClick (fn [_event]
+                              (a/destroy-todo>> (assoc states
+                                                       :entity.todo/id
+                                                       id)))}))
       (r/input {:ref edit-field-ref
                 :className "edit"
                 ;; :value nil
@@ -67,7 +67,7 @@
               (r/ul {:className "todo-list"}
                     (->> todos
                          (mapv #(->> (merge % {:key (-> %
-                                                        (select-keys [:todo/id :todo/completed?])
+                                                        (select-keys [:entity.todo/id :entity.todo/completed?])
                                                         str)})
                                      (r/create-element todo-item)))
                          to-array)))

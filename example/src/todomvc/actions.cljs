@@ -35,3 +35,16 @@
                         not)
              app-state)))
   (p/resolved (dissoc data :entity.todo/id)))
+
+(defn-spec destroy-todo>> :action/promise
+  [{:react-context/keys [app-state*]
+    :entity.todo/keys [id]
+    :as data}
+   (s/keys :req [:react-context/app-state* :entity.todo/id])]
+  ;; ---
+  (swap! app-state*
+         (fn [app-state]
+           (update app-state
+                   :state/todos
+                   (partial filterv #(not= (:entity.todo/id %) id)))))
+  (p/resolved (dissoc data :entity.todo/id)))
