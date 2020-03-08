@@ -53,7 +53,8 @@
                 :autoFocus true}))))
 
 (defn root [props]
-  (let [{:react-context/keys [app-state*]} (state/use-states)
+  (let [states (state/use-states)
+        {:react-context/keys [app-state*]} (state/use-states)
         todos (:state/todos @app-state*)]
     (r/fragment
       (r/section {:className "todoapp"}
@@ -88,7 +89,12 @@
                     "Active"))
                 (r/li
                   (r/a {:href "#/completed"}
-                    "Completed")))))))
+                       "Completed")))
+              (when (some :entity.todo/completed? todos)
+                (r/button {:className "clear-completed"
+                           :onClick (fn [_event]
+                                      (a/clear-completed-todos>> states))}
+                  "Clear completed!"))))))
       (r/footer {:className "info"}
         (r/p "Double-click to edit a todo")
         (r/p

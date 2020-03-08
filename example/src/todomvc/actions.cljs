@@ -16,6 +16,8 @@
                                                            :completed? false})
   (p/resolved (dissoc data :component/keys)))
 
+;; ---
+
 (defn-spec toggle-todo-status>> :action/promise
   [{:react-context/keys [app-state*]
     :entity.todo/keys [id]
@@ -36,15 +38,35 @@
              app-state)))
   (p/resolved (dissoc data :entity.todo/id)))
 
+;; ---
+
+(defn-spec ^:private destroy-todo :state/todos
+  [todos :state/todos
+   id :entity.todo/id]
+  (filterv #(not= (:entity.todo/id %) id)
+           todos))
+
 (defn-spec destroy-todo>> :action/promise
   [{:react-context/keys [app-state*]
     :entity.todo/keys [id]
     :as data}
    (s/keys :req [:react-context/app-state* :entity.todo/id])]
   ;; ---
-  (swap! app-state*
-         (fn [app-state]
-           (update app-state
-                   :state/todos
-                   (partial filterv #(not= (:entity.todo/id %) id)))))
+  (swap! app-state* update :state/todos #(destroy-todo % id))
   (p/resolved (dissoc data :entity.todo/id)))
+
+;; ---
+
+;; TODO: does (fn-spec ...) exists so that it is not
+;; mandatory to split the async function?
+(defn-spec ^:private clear-completed-todos :state/todos
+  [todos :state/todos]
+  (filterv #(false? (:entity.todo/completed? %)) todos))
+
+(defn-spec clear-completed-todos>> :action/promise
+  [{:react-context/keys [app-state*]
+    :as data}
+   (s/keys :req [:react-context/app-state*])]
+  ;; ---
+  (swap! app-state* update :state/todos clear-completed-todos)
+  (p/resolved data))

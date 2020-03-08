@@ -10,6 +10,10 @@
    (r/create-element c/root)))
 
 (defn init! []
+  (let [out (-> (st/instrument)
+                sort)]
+    (js/console.log
+      (str "Instrumented functions:\n" (with-out-str (cljs.pprint/pprint out)))))
   (r/render
     (r/create-element root-with-context)
     (js/document.getElementById "main-app")))
@@ -23,5 +27,3 @@
 
 (defn reload! []
   (init!))
-
-(st/instrument)
