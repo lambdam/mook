@@ -10,7 +10,8 @@
 (def ^:const enter-key 13)
 
 (defn todo-item [props]
-  (let [{:todo/keys [title completed?]} (b/->clj props)
+  (let [states (state/use-states)
+        {:entity.todo/keys [id title completed?]} (b/->clj props)
         edit-field-ref (r/use-ref nil)]
     (r/li {:className (r/classes {:completed false
                                   :editing false})}
@@ -18,7 +19,10 @@
         (r/input {:className "toggle"
                   :type "checkbox"
                   :checked completed?
-                  :onChange (fn [])})
+                  :onChange (fn [_event]
+                              (a/toggle-todo-status>> (assoc states
+                                                             :entity.todo/id
+                                                             id)))})
         (r/label {:onDoubleClick (fn [])}
                  title)
         (r/button {:className "destroy"
@@ -32,7 +36,7 @@
                              (js/console.log e))}))))
 
 (defn new-todo-form [props]
-  (let [data (state/use-states)
+  (let [states (state/use-states)
         [title set-title] (r/use-state "")]
     (r/header {:className "header"}
       (r/h1 "todos")
@@ -43,7 +47,7 @@
                              :event/enter-key (let [value (str/trim title)]
                                                 (.preventDefault %)
                                                 (when-not (str/blank? value)
-                                                  (a/create-new-todo>> (assoc data :component/title value))))
+                                                  (a/create-new-todo>> (assoc states :component/title value))))
                              nil)
                 :onChange #(-> % .-target .-value set-title)
                 :autoFocus true}))))

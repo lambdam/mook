@@ -9,3 +9,12 @@
 
 (s/def :action/promise
   p/promise?)
+
+(s/def ::id string?)
+
+(s/def :entity.todo/id ::id)
+(s/def :entity.todo/title string?)
+(s/def :entity.todo/completed? boolean?)
+
+(s/def :entity/todo
+  (s/keys :req [:entity.todo/id :entity.todo/title :entity.todo/completed?]))

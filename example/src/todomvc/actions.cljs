@@ -11,7 +11,27 @@
     :as data}
    (s/keys :req [:react-context/app-state* :component/title])]
   ;; ---
-  (swap! app-state* update :state/todos conj #:todo{:id (random-uuid)
-                                                    :title title
-                                                    :completed? false})
+  (swap! app-state* update :state/todos conj #:entity.todo{:id (str (random-uuid))
+                                                           :title title
+                                                           :completed? false})
   (p/resolved (dissoc data :component/keys)))
+
+(defn-spec toggle-todo-status>> :action/promise
+  [{:react-context/keys [app-state*]
+    :entity.todo/keys [id]
+    :as data}
+   (s/keys :req [:react-context/app-state* :entity.todo/id])]
+  ;; ---
+  (swap! app-state*
+         (fn [app-state]
+           (if-let [[index todo] (reduce-kv (fn [acc k v]
+                                              (if (= id (:entity.todo/id v))
+                                                (reduced [k v])
+                                                acc))
+                                            nil
+                                            (:state/todos app-state))]
+             (update-in app-state
+                        [:state/todos index :entity.todo/completed?]
+                        not)
+             app-state)))
+  (p/resolved (dissoc data :entity.todo/id)))
