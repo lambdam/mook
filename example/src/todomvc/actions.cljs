@@ -5,18 +5,40 @@
             todomvc.specs ;; don't ns-clean
             ))
 
+(defn-spec ^:private create-new-todo :state/todos
+  [todos :state/todos
+   title string?]
+  ;; ---
+  (into [#:entity.todo{:id (str (random-uuid))
+                       :title title
+                       :completed? false}]
+        todos))
+
 (defn-spec create-new-todo>> :action/promise
   [{:react-context/keys [app-state*]
     :component/keys [title]
     :as data}
    (s/keys :req [:react-context/app-state* :component/title])]
   ;; ---
-  (swap! app-state* update :state/todos conj #:entity.todo{:id (str (random-uuid))
-                                                           :title title
-                                                           :completed? false})
+  (swap! app-state* update :state/todos #(create-new-todo % title))
   (p/resolved (dissoc data :component/keys)))
 
 ;; ---
+
+(defn-spec ^:private toggle-todo-status :react-context/app-state
+  [app-state :react-context/app-state
+   id :entity.todo/id]
+  ;; ---
+  (if-let [[index todo] (reduce-kv (fn [acc k v]
+                                     (if (= id (:entity.todo/id v))
+                                       (reduced [k v])
+                                       acc))
+                                   nil
+                                   (:state/todos app-state))]
+    (update-in app-state
+               [:state/todos index :entity.todo/completed?]
+               not)
+    app-state))
 
 (defn-spec toggle-todo-status>> :action/promise
   [{:react-context/keys [app-state*]
@@ -24,18 +46,7 @@
     :as data}
    (s/keys :req [:react-context/app-state* :entity.todo/id])]
   ;; ---
-  (swap! app-state*
-         (fn [app-state]
-           (if-let [[index todo] (reduce-kv (fn [acc k v]
-                                              (if (= id (:entity.todo/id v))
-                                                (reduced [k v])
-                                                acc))
-                                            nil
-                                            (:state/todos app-state))]
-             (update-in app-state
-                        [:state/todos index :entity.todo/completed?]
-                        not)
-             app-state)))
+  (swap! app-state* #(toggle-todo-status % id))
   (p/resolved (dissoc data :entity.todo/id)))
 
 ;; ---
