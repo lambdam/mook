@@ -99,3 +99,14 @@
   ;; ---
   (swap! app-state* update :state/todos toggle-all some-completed?)
   (p/resolved (dissoc data :component/some-completed?)))
+
+;; ---
+
+(defn-spec set-filter>> :action/promise
+  [{:react-context/keys [app-state*]
+    :state.local/keys [active-filter]
+    :as data}
+   (s/keys :req [:react-context/app-state* :state.local/active-filter])]
+  ;; ---
+  (swap! app-state* update :state.local/active-filter #(do active-filter))
+  (p/resolved (dissoc data :state.local/active-filter)))

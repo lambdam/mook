@@ -20,6 +20,9 @@
 (s/def :state/todos
   (s/coll-of :entity/todo :kind vector?))
 
+(s/def :state.local/active-filter
+  #{:all :active :completed})
+
 (s/def :react-context/app-state
   (s/keys :req [:state/todos]))
 

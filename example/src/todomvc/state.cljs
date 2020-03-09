@@ -5,7 +5,8 @@
   (atom 0))
 
 (defonce app-state*
-  (atom {:state/todos []}))
+  (atom {:state/todos []
+         :state.local/active-filter :all}))
 
 (def app-state-context
   (r/create-context app-state*))

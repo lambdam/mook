@@ -2,6 +2,7 @@
   (:require [cljs-bean.core :as b]
             [clojure.string :as str]
             [todomvc.actions :as a]
+            [todomvc.helpers :as h]
             [todomvc.lib.keys :as k]
             [todomvc.lib.react :as r]
             [todomvc.state :as state]))
@@ -54,8 +55,7 @@
                 :autoFocus true}))))
 
 (defn root [props]
-  (let [states (state/use-states)
-        {:react-context/keys [app-state*]} (state/use-states)
+  (let [{:react-context/keys [app-state*] :as states} (state/use-states)
         todos (:state/todos @app-state*)
         some-completed? (boolean (some :entity.todo/completed? todos))]
     (r/fragment
@@ -75,7 +75,7 @@
               (r/label {:htmlFor "toggle-all"}
                 #_"Mark all as complete")
               (r/ul {:className "todo-list"}
-                    (->> todos
+                    (->> (h/filter-todos todos (:state.local/active-filter @app-state*))
                          (mapv #(->> (merge % {:key (-> %
                                                         (select-keys [:entity.todo/id :entity.todo/completed?])
                                                         str)})
@@ -89,16 +89,26 @@
                     1 "1 item left"
                     ;; else
                     (str len " items left"))))
-              (r/ul {:className "filters"}
-                (r/li
-                  (r/a {:href "#/" :className "selected"}
-                    "All"))
-                (r/li
-                  (r/a {:href "#/active"}
-                    "Active"))
-                (r/li
-                  (r/a {:href "#/completed"}
-                       "Completed")))
+              (let [{:state.local/keys [active-filter]} @app-state*]
+                (r/ul {:className "filters"}
+                  (r/li
+                    (r/a {:onClick (fn [e]
+                                     (.preventDefault e)
+                                     (a/set-filter>> (assoc states :state.local/active-filter :all)))
+                          :className (when (= :all active-filter) "selected")}
+                      "All"))
+                  (r/li
+                    (r/a {:onClick (fn [e]
+                                     (.preventDefault e)
+                                     (a/set-filter>> (assoc states :state.local/active-filter :active)))
+                          :className (when (= :active active-filter) "selected")}
+                      "Active"))
+                  (r/li
+                    (r/a {:onClick (fn [e]
+                                     (.preventDefault e)
+                                     (a/set-filter>> (assoc states :state.local/active-filter :completed)))
+                          :className (when (= :completed active-filter) "selected")}
+                      "Completed"))))
               (when some-completed?
                 (r/button {:className "clear-completed"
                            :onClick (fn [_event]
