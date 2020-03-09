@@ -47,7 +47,8 @@
                              :event/enter-key (let [value (str/trim title)]
                                                 (.preventDefault %)
                                                 (when-not (str/blank? value)
-                                                  (a/create-new-todo>> (assoc states :component/title value))))
+                                                  (a/create-new-todo>> (assoc states :component/title value))
+                                                  (set-title "")))
                              nil)
                 :onChange #(-> % .-target .-value set-title)
                 :autoFocus true}))))
