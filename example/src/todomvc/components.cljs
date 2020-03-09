@@ -56,16 +56,24 @@
 (defn root [props]
   (let [states (state/use-states)
         {:react-context/keys [app-state*]} (state/use-states)
-        todos (:state/todos @app-state*)]
+        todos (:state/todos @app-state*)
+        some-completed? (boolean (some :entity.todo/completed? todos))]
     (r/fragment
       (r/section {:className "todoapp"}
         (r/create-element new-todo-form)
         (when (not (empty? todos))
           (r/fragment
             (r/section {:className "main"}
-              (r/input {:id "toggle-all" :className "toggle-all" :type "checkbox"})
+              (r/input {:id"toggle-all"
+                        :className "toggle-all"
+                        :type "checkbox"
+                        :checked (not some-completed?)
+                        :onChange (fn [_event]
+                                    (a/toggle-all>> (assoc states
+                                                           :component/some-completed?
+                                                           some-completed?)))})
               (r/label {:htmlFor "toggle-all"}
-                "Mark all as complete")
+                #_"Mark all as complete")
               (r/ul {:className "todo-list"}
                     (->> todos
                          (mapv #(->> (merge % {:key (-> %
@@ -91,7 +99,7 @@
                 (r/li
                   (r/a {:href "#/completed"}
                        "Completed")))
-              (when (some :entity.todo/completed? todos)
+              (when some-completed?
                 (r/button {:className "clear-completed"
                            :onClick (fn [_event]
                                       (a/clear-completed-todos>> states))}

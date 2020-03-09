@@ -3,6 +3,7 @@
             [promesa.core :as p]))
 
 (s/def :component/title string?)
+(s/def :component/some-completed? boolean?)
 
 (s/def :action/promise
   p/promise?)

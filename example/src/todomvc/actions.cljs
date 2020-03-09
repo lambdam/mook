@@ -20,7 +20,7 @@
     :as data}
    (s/keys :req [:react-context/app-state* :component/title])]
   ;; ---
-  (swap! app-state* update :state/todos #(create-new-todo % title))
+  (swap! app-state* update :state/todos create-new-todo title)
   (p/resolved (dissoc data :component/keys)))
 
 ;; ---
@@ -63,7 +63,7 @@
     :as data}
    (s/keys :req [:react-context/app-state* :entity.todo/id])]
   ;; ---
-  (swap! app-state* update :state/todos #(destroy-todo % id))
+  (swap! app-state* update :state/todos destroy-todo id)
   (p/resolved (dissoc data :entity.todo/id)))
 
 ;; ---
@@ -81,3 +81,21 @@
   ;; ---
   (swap! app-state* update :state/todos clear-completed-todos)
   (p/resolved data))
+
+;; ---
+
+(defn-spec ^:private toggle-all :state/todos
+  [todos :state/todos
+   some-completed? :component/some-completed?]
+  ;; ---
+  (mapv #(assoc % :entity.todo/completed? (not some-completed?))
+        todos))
+
+(defn-spec toggle-all>> :action/promise
+  [{:react-context/keys [app-state*]
+    :component/keys [some-completed?]
+    :as data}
+   (s/keys :req [:react-context/app-state* :component/some-completed?])]
+  ;; ---
+  (swap! app-state* update :state/todos toggle-all some-completed?)
+  (p/resolved (dissoc data :component/some-completed?)))
