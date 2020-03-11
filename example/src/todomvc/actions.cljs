@@ -110,3 +110,31 @@
   ;; ---
   (swap! app-state* update :state.local/active-filter #(do active-filter))
   (p/resolved (dissoc data :state.local/active-filter)))
+
+;; ---
+
+(defn-spec ^:private update-todo :state/todos
+  [todos :state/todos
+   id :entity.todo/id
+   title :entity.todo/title]
+  ;; ---
+  (if-let [[index todo] (reduce-kv (fn [acc k v]
+                                     (if (= id (:entity.todo/id v))
+                                       (reduced [k v])
+                                       acc))
+                                   nil
+                                   todos)]
+    (update-in todos
+               [index :entity.todo/title]
+               #(do title))
+    todos))
+
+(defn-spec update-todo>> :action/promise
+  [{:react-context/keys [app-state*]
+    :entity.todo/keys [id]
+    :component/keys [title]
+    :as data}
+   (s/keys :req [:react-context/app-state* :component/title :entity.todo/id])]
+  ;; ---
+  (swap! app-state* update :state/todos update-todo id title)
+  (p/resolved (dissoc data :entity.todo/id :component/title)))

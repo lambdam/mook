@@ -1,6 +1,7 @@
 (ns todomvc.components
   (:require [cljs-bean.core :as b]
             [clojure.string :as str]
+            [promesa.core :as p]
             [todomvc.actions :as a]
             [todomvc.helpers :as h]
             [todomvc.lib.keys :as k]
@@ -10,9 +11,16 @@
 (defn todo-item [props]
   (let [states (state/use-states)
         {:entity.todo/keys [id title completed?]} (b/->clj props)
+        [editing? set-editing?] (r/use-state false)
+        [edit-text set-edit-text] (r/use-state title)
         edit-field-ref (r/use-ref nil)]
-    (r/li {:className (r/classes {:completed false
-                                  :editing false})}
+    (r/use-effect (fn focus-field []
+                    (when editing?
+                      (-> edit-field-ref .-current .focus))
+                    (fn clean []))
+                  #js [editing?])
+    (r/li {:className (r/classes {:completed completed?
+                                  :editing editing?})}
       (r/div {:className "view"}
         (r/input {:className "toggle"
                   :type "checkbox"
@@ -22,7 +30,8 @@
                               (a/toggle-todo-status>> (assoc states
                                                              :entity.todo/id
                                                              id)))})
-        (r/label {:onDoubleClick (fn [])}
+        (r/label {:onDoubleClick (fn [e]
+                                   (set-editing? true))}
           title)
         (r/button {:className "destroy"
                    :style {:cursor "pointer"}
@@ -30,13 +39,24 @@
                               (a/destroy-todo>> (assoc states
                                                        :entity.todo/id
                                                        id)))}))
-      (r/input {:ref edit-field-ref
-                :className "edit"
-                ;; :value nil
-                :onBlur (fn [])
-                :onChange (fn [])
-                :onKeyDown (fn [e]
-                             (js/console.log e))}))))
+      (let [save-todo>> (fn save-todo>> [e]
+                          (let [value (str/trim edit-text)]
+                            (when-not (str/blank? value)
+                              (p/chain
+                                (a/update-todo>> (assoc states
+                                                        :component/title value
+                                                        :entity.todo/id id))
+                                #(set-editing? false)))))]
+        (r/input {:ref edit-field-ref
+                  :className "edit"
+                  :value edit-text
+                  :onBlur save-todo>>
+                  :onChange #(-> % .-target .-value set-edit-text)
+                  :onKeyDown #(case (-> % .-keyCode k/code->key)
+                                :event/enter-key (save-todo>> %)
+                                :event/escape-key (do (set-editing? false)
+                                                      (set-edit-text title))
+                                nil)})))))
 
 (defn new-todo-form [props]
   (let [states (state/use-states)
