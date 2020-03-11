@@ -86,19 +86,19 @@
 
 (defn-spec ^:private toggle-all :state/todos
   [todos :state/todos
-   some-completed? :component/some-completed?]
+   all-completed? :component/all-completed?]
   ;; ---
-  (mapv #(assoc % :entity.todo/completed? (not some-completed?))
+  (mapv #(assoc % :entity.todo/completed? (not all-completed?))
         todos))
 
 (defn-spec toggle-all>> :action/promise
   [{:react-context/keys [app-state*]
-    :component/keys [some-completed?]
+    :component/keys [all-completed?]
     :as data}
-   (s/keys :req [:react-context/app-state* :component/some-completed?])]
+   (s/keys :req [:react-context/app-state* :component/all-completed?])]
   ;; ---
-  (swap! app-state* update :state/todos toggle-all some-completed?)
-  (p/resolved (dissoc data :component/some-completed?)))
+  (swap! app-state* update :state/todos toggle-all all-completed?)
+  (p/resolved (dissoc data :component/all-completed?)))
 
 ;; ---
 
