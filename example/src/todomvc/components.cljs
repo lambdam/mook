@@ -17,6 +17,7 @@
         (r/input {:className "toggle"
                   :type "checkbox"
                   :checked completed?
+                  :style {:cursor "pointer"}
                   :onChange (fn [_event]
                               (a/toggle-todo-status>> (assoc states
                                                              :entity.todo/id
@@ -24,6 +25,7 @@
         (r/label {:onDoubleClick (fn [])}
           title)
         (r/button {:className "destroy"
+                   :style {:cursor "pointer"}
                    :onClick (fn [_event]
                               (a/destroy-todo>> (assoc states
                                                        :entity.todo/id
@@ -72,7 +74,8 @@
                                     (a/toggle-all>> (assoc states
                                                            :component/all-completed?
                                                            all-completed?)))})
-              (r/label {:htmlFor "toggle-all"}
+              (r/label {:style {:cursor "pointer"}
+                        :htmlFor "toggle-all"}
                 #_"Mark all as complete")
               (r/ul {:className "todo-list"}
                     (->> (h/filter-todos todos (:state.local/active-filter @app-state*))
