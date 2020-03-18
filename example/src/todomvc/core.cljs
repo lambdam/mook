@@ -1,12 +1,19 @@
 (ns todomvc.core
-  (:require [cljs-bean.core :as b]
+  (:require [mook.core :as mk]
+            [mook.react :as r]
+            [mook.hooks :as h]
             [orchestra-cljs.spec.test :as st]
-            [todomvc.components :as c]
-            [todomvc.lib.react :as r]
-            [todomvc.state :as state]))
+            [react-dom :as react-dom]
+            [todomvc.components :as c]))
+
+(mk/register-store! :local-store (atom {}))
+
+#_(defn root-with-context []
+    ((:provider states/app-state-context) {:value states/app-state*}
+     (r/create-element c/root)))
 
 (defn root-with-context []
-  ((:provider state/app-state-context) {:value state/app-state*}
+  ((::r/provider h/state-stores-context) {:value h/stores*}
    (r/create-element c/root)))
 
 (defn init! []
@@ -14,7 +21,7 @@
                 sort)]
     (js/console.log
       (str "Instrumented functions:\n" (with-out-str (cljs.pprint/pprint out)))))
-  (r/render
+  (react-dom/render
     (r/create-element root-with-context)
     (js/document.getElementById "main-app")))
 
@@ -22,8 +29,7 @@
   (init!)
   )
 
-(defn main! []
+#_(defn reload! []
   (init!))
 
-(defn reload! []
-  (init!))
+(init!)

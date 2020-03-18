@@ -1,9 +1,10 @@
-(ns todomvc.lib.react
-  (:require ["react" :as react]
-            ["react-dom" :as react-dom]
+(ns mook.react
+  (:require #_["react" :as react]
+            #_["react-dom" :as react-dom]
+            [react :as react]
             [cljs-bean.core :as b]
             [clojure.string :as str])
-  (:require-macros [todomvc.lib.react :refer [def-elems]]))
+  (:require-macros [mook.react :refer [def-elems]]))
 
 (defn create-element
   ([comp]
@@ -33,42 +34,37 @@
      (apply react/createElement comp (b/->js opts) el1 el2 el3 el4 children)
      (apply react/createElement comp nil opts el1 el2 el3 el4 children))))
 
-(defn render [react-el dom-el]
+#_(defn render [react-el dom-el]
   (react-dom/render react-el dom-el))
 
-(def-elems
+(def html-tags
   ["h1" "h2" "h3" "h4" "h5" "h6"
    "div" "p" "a" "span" "section" "header" "footer"
    "input" "label" "button"
    "ul" "li"])
 
 (def fragment
-  (partial create-element (.-Fragment react)))
-
-(def ^:private createContext
-  (.-createContext react))
+  (partial create-element react/Fragment))
 
 (defn create-context [default-value]
-  (let [context (createContext default-value)
-        provider-class (.-Provider context)
-        provider (partial create-element provider-class)
-        consumer (.-Consumer context)]
-    {:context context
-     :provider-class provider-class
-     :provider provider
-     :consumer consumer}))
+  (let [context (react/createContext default-value)
+        provider-class (.-Provider context)]
+    {::context context
+     ::provider-class provider-class
+     ::provider (partial create-element provider-class)
+     ::consumer (.-Consumer context)}))
 
 (def use-context
-  (.-useContext react))
+  react/useContext)
 
 (def use-ref
-  (.-useRef react))
+  react/useRef)
 
 (def use-state
-  (.-useState react))
+  react/useState)
 
 (def use-effect
-  (.-useEffect react))
+  react/useEffect)
 
 (defn classes [prop-map]
   (->> (reduce (fn [acc [prop pred?]]

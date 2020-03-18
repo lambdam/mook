@@ -1,9 +1,11 @@
-(ns todomvc.actions
+(ns todomvc.commands
   (:require [cljs.spec.alpha :as s]
             [promesa.core :as p]
             [orchestra.core :refer-macros [defn-spec]]
+            [mook.core :as c]
             todomvc.specs ;; don't ns-clean
             ))
+
 
 (defn-spec ^:private create-new-todo :state/todos
   [todos :state/todos

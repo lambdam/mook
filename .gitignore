@@ -1,3 +1,6 @@
 node_modules/
 .shadow-cljs/
 /example/public/
+.cpcache/
+/example/target/
+/flappy-bird-demo-new/

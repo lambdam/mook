@@ -1,15 +1,16 @@
 (ns todomvc.components
   (:require [cljs-bean.core :as b]
             [clojure.string :as str]
+            [mook.react :as r]
+            [mook.hooks :as mkh]
             [promesa.core :as p]
-            [todomvc.actions :as a]
             [todomvc.helpers :as h]
-            [todomvc.lib.keys :as k]
-            [todomvc.lib.react :as r]
-            [todomvc.state :as state]))
+            [todomvc.commands :as c]
+            [todomvc.elements :as el]
+            [todomvc.lib.keys :as k]))
 
 (defn todo-item [props]
-  (let [states (state/use-states)
+  (let [state-stores (mkh/use-mook-state-stores)
         {:entity.todo/keys [id title completed?]} (b/->clj props)
         [editing? set-editing?] (r/use-state false)
         [edit-text set-edit-text] (r/use-state title)
@@ -19,35 +20,35 @@
                       (-> edit-field-ref .-current .focus))
                     (fn clean []))
                   #js [editing?])
-    (r/li {:className (r/classes {:completed completed?
-                                  :editing editing?})}
-      (r/div {:className "view"}
-        (r/input {:className "toggle"
+    (el/li {:className (r/classes {:completed completed?
+                                   :editing editing?})}
+      (el/div {:className "view"}
+        (el/input {:className "toggle"
                   :type "checkbox"
                   :checked completed?
                   :style {:cursor "pointer"}
                   :onChange (fn [_event]
-                              (a/toggle-todo-status>> (assoc states
+                              (c/toggle-todo-status>> (assoc state-stores
                                                              :entity.todo/id
                                                              id)))})
-        (r/label {:onDoubleClick (fn [e]
+        (el/label {:onDoubleClick (fn [e]
                                    (set-editing? true))}
           title)
-        (r/button {:className "destroy"
+        (el/button {:className "destroy"
                    :style {:cursor "pointer"}
                    :onClick (fn [_event]
-                              (a/destroy-todo>> (assoc states
+                              (c/destroy-todo>> (assoc state-stores
                                                        :entity.todo/id
                                                        id)))}))
       (let [save-todo>> (fn save-todo>> [e]
                           (let [value (str/trim edit-text)]
                             (when-not (str/blank? value)
                               (p/chain
-                                (a/update-todo>> (assoc states
+                                (c/update-todo>> (assoc state-stores
                                                         :component/title value
                                                         :entity.todo/id id))
                                 #(set-editing? false)))))]
-        (r/input {:ref edit-field-ref
+        (el/input {:ref edit-field-ref
                   :className "edit"
                   :value edit-text
                   :onBlur save-todo>>
@@ -59,91 +60,91 @@
                                 nil)})))))
 
 (defn new-todo-form [props]
-  (let [states (state/use-states)
+  (let [state-stores (mkh/use-mook-state-stores)
         [title set-title] (r/use-state "")]
-    (r/header {:className "header"}
-      (r/h1 "todos")
-      (r/input {:className "new-todo"
+    (el/header {:className "header"}
+      (el/h1 "todos")
+      (el/input {:className "new-todo"
                 :placeholder "What needs to be done?"
                 :value title
                 :onKeyDown #(case (-> % .-keyCode k/code->key)
                              :event/enter-key (let [value (str/trim title)]
                                                 (.preventDefault %)
                                                 (when-not (str/blank? value)
-                                                  (a/create-new-todo>> (assoc states :component/title value))
+                                                  (c/create-new-todo>> (assoc state-stores :component/title value))
                                                   (set-title "")))
                              nil)
                 :onChange #(-> % .-target .-value set-title)
                 :autoFocus true}))))
 
 (defn root [props]
-  (let [{:react-context/keys [app-state*] :as states} (state/use-states)
-        todos (:state/todos @app-state*)
+  (let [state-stores (mkh/use-mook-state-stores)
+        todos (mkh/use-state-store :local-store :todos)
+        active-filter (mkh/use-state-store :local-store :active-filter)
         all-completed? (every? :entity.todo/completed? todos)]
     (r/fragment
-      (r/section {:className "todoapp"}
+      (el/section {:className "todoapp"}
         (r/create-element new-todo-form)
         (when (not (empty? todos))
           (r/fragment
-            (r/section {:className "main"}
-              (r/input {:id"toggle-all"
-                        :className "toggle-all"
-                        :type "checkbox"
-                        :checked all-completed?
-                        :onChange (fn [_event]
-                                    (a/toggle-all>> (assoc states
-                                                           :component/all-completed?
-                                                           all-completed?)))})
-              (r/label {:style {:cursor "pointer"}
-                        :htmlFor "toggle-all"}
+            (el/section {:className "main"}
+              (el/input {:id"toggle-all"
+                         :className "toggle-all"
+                         :type "checkbox"
+                         :checked all-completed?
+                         :onChange (fn [_event]
+                                     (c/toggle-all>> (assoc state-stores
+                                                            :component/all-completed?
+                                                            all-completed?)))})
+              (el/label {:style {:cursor "pointer"}
+                         :htmlFor "toggle-all"}
                 #_"Mark all as complete")
-              (r/ul {:className "todo-list"}
-                    (->> (h/filter-todos todos (:state.local/active-filter @app-state*))
-                         (mapv #(->> (merge % {:key (-> %
-                                                        (select-keys [:entity.todo/id :entity.todo/completed?])
-                                                        str)})
-                                     (r/create-element todo-item)))
-                         to-array)))
-            (r/footer {:className "footer"}
-              (r/span {:className "todo-count"}
+              (el/ul {:className "todo-list"}
+                (->> (h/filter-todos todos active-filter)
+                     (mapv #(->> (merge % {:key (-> %
+                                                    (select-keys [:entity.todo/id :entity.todo/completed?])
+                                                    str)})
+                                 (r/create-element todo-item)))
+                     to-array)))
+            (el/footer {:className "footer"}
+              (el/span {:className "todo-count"}
                 (let [len (count todos)]
                   (case len
                     0 "All completed"
                     1 "1 item left"
                     ;; else
                     (str len " items left"))))
-              (let [{:state.local/keys [active-filter]} @app-state*]
-                (r/ul {:className "filters"}
-                  (r/li
-                    (r/a {:onClick (fn [e]
-                                     (.preventDefault e)
-                                     (a/set-filter>> (assoc states :state.local/active-filter :all)))
-                          :className (when (= :all active-filter) "selected")}
-                      "All"))
-                  (r/li
-                    (r/a {:onClick (fn [e]
-                                     (.preventDefault e)
-                                     (a/set-filter>> (assoc states :state.local/active-filter :active)))
-                          :className (when (= :active active-filter) "selected")}
-                      "Active"))
-                  (r/li
-                    (r/a {:onClick (fn [e]
-                                     (.preventDefault e)
-                                     (a/set-filter>> (assoc states :state.local/active-filter :completed)))
-                          :className (when (= :completed active-filter) "selected")}
-                      "Completed"))))
+              (el/ul {:className "filters"}
+                (el/li
+                  (el/a {:onClick (fn [e]
+                                    (.preventDefault e)
+                                    (c/set-filter>> (assoc state-stores :state.local/active-filter :all)))
+                         :className (when (= :all active-filter) "selected")}
+                    "All"))
+                (el/li
+                  (el/a {:onClick (fn [e]
+                                    (.preventDefault e)
+                                    (c/set-filter>> (assoc state-stores :state.local/active-filter :active)))
+                         :className (when (= :active active-filter) "selected")}
+                    "Active"))
+                (el/li
+                  (el/a {:onClick (fn [e]
+                                    (.preventDefault e)
+                                    (c/set-filter>> (assoc state-stores :state.local/active-filter :completed)))
+                         :className (when (= :completed active-filter) "selected")}
+                    "Completed")))
               (when (some :entity.todo/completed? todos)
-                (r/button {:className "clear-completed"
+                (el/button {:className "clear-completed"
                            :onClick (fn [_event]
-                                      (a/clear-completed-todos>> states))}
+                                      (c/clear-completed-todos>> state-stores))}
                   "Clear completed!"))))))
-      (r/footer {:className "info"}
-        (r/p "Double-click to edit a todo")
-        (r/p
+      (el/footer {:className "info"}
+        (el/p "Double-click to edit a todo")
+        (el/p
           "Written by "
-          (r/a {:href "https://github.com/lambdam"}
+          (el/a {:href "https://github.com/lambdam"}
             "Damien Ragoucy"))
-        (r/p
+        (el/p
           "Part of "
-          (r/a {:href "http://todomvc.com"}
+          (el/a {:href "http://todomvc.com"}
             "TodoMVC"))))))
