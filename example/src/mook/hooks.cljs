@@ -15,10 +15,10 @@
 (def state-stores-context
   (r/create-context stores*))
 
-#_(defn wrap-with-mook-state-stores-context [props]
-  (apply
-    ((::r/provider state-stores-context) {:value stores*})
-    (.-children props)))
+(defn wrap-with-mook-state-stores-context [root-component]
+  (let [provider (::r/provider state-stores-context)]
+    (provider {:value stores*}
+      (r/create-element root-component))))
 
 (defn use-mook-state-stores []
   (-> state-stores-context
