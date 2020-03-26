@@ -7,8 +7,8 @@
             ))
 
 
-(defn-spec ^:private create-new-todo :state/todos
-  [todos :state/todos
+(defn-spec ^:private create-new-todo :app-store/todos
+  [todos :app-store/todos
    title string?]
   ;; ---
   (into [#:entity.todo{:id (str (random-uuid))
@@ -17,18 +17,18 @@
         todos))
 
 (defn-spec create-new-todo>> :action/promise
-  [{:react-context/keys [app-state*]
+  [{:todomvc.store/keys [app-store*]
     :component/keys [title]
     :as data}
-   (s/keys :req [:react-context/app-state* :component/title])]
+   (s/keys :req [:todomvc.store/app-store* :component/title])]
   ;; ---
-  (swap! app-state* update :state/todos create-new-todo title)
+  (swap! app-store* update :app-store/todos create-new-todo title)
   (p/resolved (dissoc data :component/keys)))
 
 ;; ---
 
-(defn-spec ^:private toggle-todo-status :react-context/app-state
-  [app-state :react-context/app-state
+(defn-spec ^:private toggle-todo-status :todomvc.store/app-store
+  [app-state :todomvc.store/app-store
    id :entity.todo/id]
   ;; ---
   (if-let [[index todo] (reduce-kv (fn [acc k v]
@@ -36,87 +36,87 @@
                                        (reduced [k v])
                                        acc))
                                    nil
-                                   (:state/todos app-state))]
+                                   (:app-store/todos app-state))]
     (update-in app-state
-               [:state/todos index :entity.todo/completed?]
+               [:app-store/todos index :entity.todo/completed?]
                not)
     app-state))
 
 (defn-spec toggle-todo-status>> :action/promise
-  [{:react-context/keys [app-state*]
+  [{:todomvc.store/keys [app-store*]
     :entity.todo/keys [id]
     :as data}
-   (s/keys :req [:react-context/app-state* :entity.todo/id])]
+   (s/keys :req [:todomvc.store/app-store* :entity.todo/id])]
   ;; ---
-  (swap! app-state* #(toggle-todo-status % id))
+  (swap! app-store* #(toggle-todo-status % id))
   (p/resolved (dissoc data :entity.todo/id)))
 
 ;; ---
 
-(defn-spec ^:private destroy-todo :state/todos
-  [todos :state/todos
+(defn-spec ^:private destroy-todo :app-store/todos
+  [todos :app-store/todos
    id :entity.todo/id]
   (filterv #(not= (:entity.todo/id %) id)
            todos))
 
 (defn-spec destroy-todo>> :action/promise
-  [{:react-context/keys [app-state*]
+  [{:todomvc.store/keys [app-store*]
     :entity.todo/keys [id]
     :as data}
-   (s/keys :req [:react-context/app-state* :entity.todo/id])]
+   (s/keys :req [:todomvc.store/app-store* :entity.todo/id])]
   ;; ---
-  (swap! app-state* update :state/todos destroy-todo id)
+  (swap! app-store* update :app-store/todos destroy-todo id)
   (p/resolved (dissoc data :entity.todo/id)))
 
 ;; ---
 
 ;; TODO: does (fn-spec ...) exists so that it is not
 ;; mandatory to split the async function?
-(defn-spec ^:private clear-completed-todos :state/todos
-  [todos :state/todos]
+(defn-spec ^:private clear-completed-todos :app-store/todos
+  [todos :app-store/todos]
   (filterv #(false? (:entity.todo/completed? %)) todos))
 
 (defn-spec clear-completed-todos>> :action/promise
-  [{:react-context/keys [app-state*]
+  [{:todomvc.store/keys [app-store*]
     :as data}
-   (s/keys :req [:react-context/app-state*])]
+   (s/keys :req [:todomvc.store/app-store*])]
   ;; ---
-  (swap! app-state* update :state/todos clear-completed-todos)
+  (swap! app-store* update :app-store/todos clear-completed-todos)
   (p/resolved data))
 
 ;; ---
 
-(defn-spec ^:private toggle-all :state/todos
-  [todos :state/todos
+(defn-spec ^:private toggle-all :app-store/todos
+  [todos :app-store/todos
    all-completed? :component/all-completed?]
   ;; ---
   (mapv #(assoc % :entity.todo/completed? (not all-completed?))
         todos))
 
 (defn-spec toggle-all>> :action/promise
-  [{:react-context/keys [app-state*]
+  [{:todomvc.store/keys [app-store*]
     :component/keys [all-completed?]
     :as data}
-   (s/keys :req [:react-context/app-state* :component/all-completed?])]
+   (s/keys :req [:todomvc.store/app-store* :component/all-completed?])]
   ;; ---
-  (swap! app-state* update :state/todos toggle-all all-completed?)
+  (swap! app-store* update :app-store/todos toggle-all all-completed?)
   (p/resolved (dissoc data :component/all-completed?)))
 
 ;; ---
 
 (defn-spec set-filter>> :action/promise
-  [{:react-context/keys [app-state*]
-    :state.local/keys [active-filter]
+  [{:todomvc.store/keys [local-store*]
+    :local-store/keys [active-filter]
     :as data}
-   (s/keys :req [:react-context/app-state* :state.local/active-filter])]
+   (s/keys :req [:todomvc.store/local-store* :local-store/active-filter])]
   ;; ---
-  (swap! app-state* update :state.local/active-filter #(do active-filter))
-  (p/resolved (dissoc data :state.local/active-filter)))
+  (swap! local-store* update :local-store/active-filter #(do active-filter))
+  (p/resolved (dissoc data :local-store/active-filter)))
 
 ;; ---
 
-(defn-spec ^:private update-todo :state/todos
-  [todos :state/todos
+(defn-spec ^:private update-todo :app-store/todos
+  [todos :app-store/todos
    id :entity.todo/id
    title :entity.todo/title]
   ;; ---
@@ -132,11 +132,11 @@
     todos))
 
 (defn-spec update-todo>> :action/promise
-  [{:react-context/keys [app-state*]
+  [{:todomvc.store/keys [app-store*]
     :entity.todo/keys [id]
     :component/keys [title]
     :as data}
-   (s/keys :req [:react-context/app-state* :component/title :entity.todo/id])]
+   (s/keys :req [:todomvc.store/app-store* :component/title :entity.todo/id])]
   ;; ---
-  (swap! app-state* update :state/todos update-todo id title)
+  (swap! app-store* update :app-store/todos update-todo id title)
   (p/resolved (dissoc data :entity.todo/id :component/title)))

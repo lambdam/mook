@@ -6,7 +6,9 @@
             [react-dom :as react-dom]
             [todomvc.components :as c]))
 
-(mk/register-store! :local-store (atom {}))
+(mk/register-store! :todomvc.store/app-store* (atom {:app-store/todos []}))
+
+(mk/register-store! :todomvc.store/local-store* (atom {:local-store/active-filter :all}))
 
 (defn init! []
   (let [out (-> (st/instrument)

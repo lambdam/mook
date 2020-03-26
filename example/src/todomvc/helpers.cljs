@@ -3,9 +3,9 @@
             todomvc.specs ;; don't ns-clean
             ))
 
-(defn-spec filter-todos :state/todos
-  [todos :state/todos
-   active-filter :state.local/active-filter]
+(defn-spec filter-todos :app-store/todos
+  [todos :app-store/todos
+   active-filter :local-store/active-filter]
   (case active-filter
     :all todos
     :active (filterv #(false? (:entity.todo/completed? %))

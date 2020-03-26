@@ -79,8 +79,8 @@
 
 (defn root [props]
   (let [state-stores (mkh/use-mook-state-stores)
-        todos (mkh/use-state-store :local-store :todos)
-        active-filter (mkh/use-state-store :local-store :active-filter)
+        todos (mkh/use-state-store :todomvc.store/app-store* :app-store/todos)
+        active-filter (mkh/use-state-store :todomvc.store/local-store* :local-store/active-filter)
         all-completed? (every? :entity.todo/completed? todos)]
     (r/fragment
       (el/section {:className "todoapp"}
@@ -115,22 +115,22 @@
                     ;; else
                     (str len " items left"))))
               (el/ul {:className "filters"}
-                (el/li
+                (el/li {:style {:cursor "pointer"}}
                   (el/a {:onClick (fn [e]
                                     (.preventDefault e)
-                                    (c/set-filter>> (assoc state-stores :state.local/active-filter :all)))
+                                    (c/set-filter>> (assoc state-stores :local-store/active-filter :all)))
                          :className (when (= :all active-filter) "selected")}
                     "All"))
-                (el/li
+                (el/li {:style {:cursor "pointer"}}
                   (el/a {:onClick (fn [e]
                                     (.preventDefault e)
-                                    (c/set-filter>> (assoc state-stores :state.local/active-filter :active)))
+                                    (c/set-filter>> (assoc state-stores :local-store/active-filter :active)))
                          :className (when (= :active active-filter) "selected")}
                     "Active"))
-                (el/li
+                (el/li {:style {:cursor "pointer"}}
                   (el/a {:onClick (fn [e]
                                     (.preventDefault e)
-                                    (c/set-filter>> (assoc state-stores :state.local/active-filter :completed)))
+                                    (c/set-filter>> (assoc state-stores :local-store/active-filter :completed)))
                          :className (when (= :completed active-filter) "selected")}
                     "Completed")))
               (when (some :entity.todo/completed? todos)
