@@ -52,68 +52,118 @@
           "A mook store must implement the mook.hooks/Watchable protocol")
   (swap! stores* assoc store-key store))
 
-(defn use-state-store [store-key handler & args]
+(defn use-state-store [store-key handler]
   (dev-print! "use-state-store main" store-key handler "green")
-  (let [state-store* (-> (use-mook-state-stores) (get store-key))]
-    (assert state-store* (str "State store " store-key " does not exist."))
-    (let [[value set-value!] (r/use-state #(do (dev-print! "use-state-store hook" store-key handler "maroon")
-                                               (handler @state-store*)))
-          last-value (r/use-ref value)
-          last-handler (r/use-ref handler)]
+  (let [state-store* (as-> (use-mook-state-stores) <>
+                       (get <> store-key)
+                       (do (assert <> (str "State store " store-key " does not exist."))
+                           <>))
+        [value set-value!] (r/use-state #(do (dev-print! "use-state-store hook" store-key handler "maroon")
+                                             (handler @state-store*)))
+        first-call?-ref (r/use-ref true)
+        last-value-ref (r/use-ref value)
+        last-handler-ref (r/use-ref handler)]
+    (r/use-effect (fn use-reactive-state-effect []
+                    (let [sub-id (swap! listener-id-counter* inc)]
+                      (add-watch state-store*
+                                 sub-id
+                                 (fn listen-to-store [new-state]
+                                   (let [handler' (.-current last-handler-ref)
+                                         new-value #(do (dev-print! "use-state-store store watcher" store-key handler "red")
+                                                        (handler' new-state))]
+                                     (when (not= new-value (.-current last-value-ref))
+                                       (set! (.-current last-value-ref) new-value)
+                                       (set-value! new-value)))))
+                      (fn remove-store-watch []
+                        (remove-watch state-store* sub-id))))
+                  #js [])
+    (set! (.-current last-handler-ref) handler)
+    (when (-> first-call?-ref .-current false?)
       (let [new-value (handler @state-store*)]
-        (when (not= new-value (.-current last-value))
+        (when (not= new-value (.-current last-value-ref))
           (dev-print! "use-state-store new handler value" store-key handler "blue")
-          (set! (.-current last-value)new-value)
-          (set-value! new-value)))
-      (set! (.-current last-handler) handler)
-      (r/use-effect (fn use-reactive-state-effect []
-                      (let [sub-id (swap! listener-id-counter* inc)]
-                        (add-watch state-store*
-                                   sub-id
-                                   (fn listen-to-store [new-state]
-                                     (let [handler' (.-current last-handler)
-                                           new-value #(do (dev-print! "use-state-store store watcher" store-key handler "red")
-                                                          (handler' new-state))]
-                                       (when (not= new-value (.-current last-value))
-                                         (set! (.-current last-value) new-value)
-                                         (set-value! new-value)))))
-                        (fn remove-store-watch []
-                          (remove-watch state-store* sub-id))))
-                    #js [])
-      value)))
+          (set! (.-current last-value-ref) new-value)
+          (set-value! new-value))))
+    (set! (.-current first-call?-ref) false)
+    value))
+
+(defn use-keyed-state-store [store-key {::keys [params handler]}]
+  (dev-print! "use-keyed-state-store main" store-key params "green")
+  (let [state-store* (as-> (use-mook-state-stores) <>
+                       (get <> store-key)
+                       (do (assert <> (str "State store " store-key " does not exist."))
+                           <>))
+        [value set-value!] (r/use-state #(do (dev-print! "use-state-store hook" store-key params "maroon")
+                                             (handler @state-store* params)))
+        last-value-ref (r/use-ref value)
+        last-params-ref (r/use-ref params)
+        last-handler-ref (r/use-ref handler)]
+    (r/use-effect (fn use-reactive-state-effect []
+                    (let [sub-id (swap! listener-id-counter* inc)]
+                      (add-watch state-store*
+                                 sub-id
+                                 (fn listen-to-store [new-state]
+                                   (let [handler' (.-current last-handler-ref)
+                                         new-value #(do (dev-print! "use-keyed-state-store store watcher" store-key params "red")
+                                                        (handler' new-state))]
+                                     (when (not= new-value (.-current last-value-ref))
+                                       (set! (.-current last-value-ref) new-value)
+                                       (set-value! new-value)))))
+                      (fn remove-store-watch []
+                        (remove-watch state-store* sub-id))))
+                  #js [])
+    (when (not= params (.-current last-params-ref))
+      (set! (.-current last-params-ref) params)
+      (let [new-value (handler @state-store* params)]
+        (when (not= new-value (.-current last-value-ref))
+          (dev-print! "use-keyed-state-store new params value" store-key params "blue")
+          (set! (.-current last-value-ref) new-value)
+          (set-value! new-value))))
+    (set! (.-current last-handler-ref) handler)
+    value))
 
 (defn use-cached-state-store [store-key {::keys [id params handler]}]
-  (let [state-store* (-> (use-mook-state-stores) (get store-key))]
-    (assert state-store* (str "State store " store-key " does not exist."))
-    (let [[value set-value!] (r/use-state (fn [] ;; What happens when params changes ?
-                                            (let [store @state-store*
-                                                  previous-store (get-in @cache* [id :mook.cache/store])]
-                                              (if (and (or (nil? params)
-                                                           (= params (get-in @cache* [id :mook.cache/params])))
-                                                       previous-store
-                                                       (identical? previous-store store))
-                                                ;; identical store and same params => same value
-                                                (get-in @cache* [id :mook.cache/value])
-                                                ;; new value to cache
-                                                (let [new-value (handler (assoc params :mook/store @state-store*))]
-                                                  (swap! cache* assoc id #:mook.cache{:store store
-                                                                                      :params params
-                                                                                      :value new-value})
-                                                  new-value)))))]
-      (r/use-effect (fn []
-                      (let [sub-id (swap! listener-id-counter* inc)]
-                        (add-watch state-store*
-                                   sub-id
-                                   (fn [new-state]
-                                     (let [last-value (get-in @cache* [id :mook.cache/value])
-                                           new-value (handler (assoc params :mook/store new-state))]
-                                       (if (= new-value last-value)
-                                         (swap! cache* assoc-in [id :mook.cache/store] new-state)
-                                         (do (swap! cache* update merge :mook.cache{:store new-state
-                                                                                    :value new-value})
-                                             (set-value! new-value))))))
-                        (fn []
-                          (remove-watch state-store* sub-id))))
-                    ;; ??? Mettre params ???
-                    #js [])
-      value)))
+  (dev-print! "use-cached-state-store main" store-key params "green")
+  (let [state-store* (as-> (use-mook-state-stores) <>
+                       (get <> store-key)
+                       (do (assert <> (str "State store " store-key " does not exist."))
+                           <>))
+        [value set-value!] (r/use-state (fn []
+                                          (dev-print! "use-cached-state-store hook" store-key params "maroon")
+                                          (let [store @state-store*
+                                                cache @cache*]
+                                            (if (and (contains? cache id)
+                                                     (identical? store (get-in cache [id ::store]))
+                                                     (= params (get-in cache [id ::params])))
+                                              (get-in @cache* [id ::value])
+                                              (let [value (handler @state-store* params)]
+                                                (swap! cache* update id #(do {::value value
+                                                                              ::params params
+                                                                              ::store store}))
+                                                value)))))
+        last-handler-ref (r/use-ref handler)]
+    (r/use-effect (fn use-reactive-state-effect []
+                    (let [sub-id (swap! listener-id-counter* inc)]
+                      (add-watch state-store*
+                                 sub-id
+                                 (fn listen-to-store [new-state]
+                                   (swap! cache* update-in [id ::store] #(do new-state))
+                                   (let [handler' (.-current last-handler-ref)
+                                         cache @cache*
+                                         new-value #(do (dev-print! "use-cached-state-store store watcher" store-key params "red")
+                                                        (handler' new-state (get-in cache [id ::params])))]
+                                     (when (not= new-value (get-in cache [id ::value]))
+                                       (swap! cache* update-in [id ::value] #(do new-value))
+                                       (set-value! new-value)))))
+                      (fn remove-store-watch []
+                        (remove-watch state-store* sub-id))))
+                  #js [])
+    (when (not= params (get-in @cache* [id ::params]))
+      (swap! cache* update-in [id ::params] params)
+      (let [new-value (handler @state-store* params)]
+        (when (not= new-value (get-in @cache* [id ::value]))
+          (dev-print! "use-cached-state-store new params value" store-key params "blue")
+          (swap! cache* update-in [id ::value] new-value)
+          (set-value! new-value))))
+    (set! (.-current last-handler-ref) handler)
+    value))
