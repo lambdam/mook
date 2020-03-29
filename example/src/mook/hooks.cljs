@@ -38,6 +38,13 @@
   (remove-watch [this key]
     (core/remove-watch this key)))
 
+(defonce print?* (atom true))
+
+(defn dev-print! [msg store-key handler color]
+  (when @print?*
+    (js/console.log (clojure.string/join "\n" [(str "%c" msg) (str store-key) (-> handler print with-out-str)])
+                    (str "background: " color "; color: white"))))
+
 (defn register-store! [store-key store]
   (assert (satisfies? core/IDeref store)
           "A mook store must implement the IDeref protocol")
@@ -45,19 +52,30 @@
           "A mook store must implement the mook.hooks/Watchable protocol")
   (swap! stores* assoc store-key store))
 
-(defn use-state-store [store-key handler]
+(defn use-state-store [store-key handler & args]
+  (dev-print! "use-state-store main" store-key handler "green")
   (let [state-store* (-> (use-mook-state-stores) (get store-key))]
     (assert state-store* (str "State store " store-key " does not exist."))
-    (let [[value set-value!] (r/use-state #(handler @state-store*))
-          last-value (r/use-ref value)]
+    (let [[value set-value!] (r/use-state #(do (dev-print! "use-state-store hook" store-key handler "maroon")
+                                               (handler @state-store*)))
+          last-value (r/use-ref value)
+          last-handler (r/use-ref handler)]
+      (let [new-value (handler @state-store*)]
+        (when (not= new-value (.-current last-value))
+          (dev-print! "use-state-store new handler value" store-key handler "blue")
+          (set! (.-current last-value)new-value)
+          (set-value! new-value)))
+      (set! (.-current last-handler) handler)
       (r/use-effect (fn use-reactive-state-effect []
                       (let [sub-id (swap! listener-id-counter* inc)]
                         (add-watch state-store*
                                    sub-id
                                    (fn listen-to-store [new-state]
-                                     (let [new-value (handler new-state)]
+                                     (let [handler' (.-current last-handler)
+                                           new-value #(do (dev-print! "use-state-store store watcher" store-key handler "red")
+                                                          (handler' new-state))]
                                        (when (not= new-value (.-current last-value))
-                                         (set! (.-current last-value))
+                                         (set! (.-current last-value) new-value)
                                          (set-value! new-value)))))
                         (fn remove-store-watch []
                           (remove-watch state-store* sub-id))))

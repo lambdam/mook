@@ -6,17 +6,29 @@
             [react-dom :as react-dom]
             [todomvc.components :as c]))
 
-(mk/register-store! :todomvc.store/app-store* (atom {:app-store/todos []}))
+(defonce app-store* (atom {:app-store/todos []}))
+(mk/register-store! :todomvc.store/app-store* app-store*)
 
-(mk/register-store! :todomvc.store/local-store* (atom {:local-store/active-filter :all}))
+(defonce local-store* (atom {:local-store/active-filter :all}))
+(mk/register-store! :todomvc.store/local-store* local-store*)
+
+(defonce counter* (atom 0))
+(defonce initiated (atom false))
+
+(defn root-comp [props]
+  (r/create-element c/root (-> (cljs-bean.core/->clj props)
+                               (assoc :todomvc-counter @counter*))))
 
 (defn init! []
-  (let [out (-> (st/instrument)
+  (when-not @initiated
+    (reset! initiated true))
+  #_(let [out (-> (st/instrument)
                 sort)]
     (js/console.log
       (str "Instrumented functions:\n" (with-out-str (cljs.pprint/pprint out)))))
+  (println (swap! counter* inc))
   (react-dom/render
-    (h/wrap-with-mook-state-stores-context c/root)
+    (h/wrap-with-mook-state-stores-context root-comp)
     (js/document.getElementById "main-app")))
 
 (comment
@@ -26,4 +38,10 @@
 #_(defn reload! []
   (init!))
 
+(when-not @initiated
+  (js/setInterval
+    #(init!)
+    3000))
+
 (init!)
+

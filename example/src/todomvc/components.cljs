@@ -60,10 +60,12 @@
                                 nil)})))))
 
 (defn new-todo-form [props]
-  (let [state-stores (mkh/use-mook-state-stores)
-        [title set-title] (r/use-state "")]
+  (let [counter (-> props b/->clj :todomvc-counter)
+        state-stores (mkh/use-mook-state-stores)
+        [title set-title] (r/use-state "")
+        cntr (mkh/use-state-store :todomvc.store/local-store* (fn counter-handler [] counter))]
     (el/header {:className "header"}
-      (el/h1 "todos")
+      (el/h1 (str "todos" " " cntr))
       (el/input {:className "new-todo"
                 :placeholder "What needs to be done?"
                 :value title
@@ -84,7 +86,7 @@
         all-completed? (every? :entity.todo/completed? todos)]
     (r/fragment
       (el/section {:className "todoapp"}
-        (r/create-element new-todo-form)
+        (r/create-element new-todo-form (b/->clj props))
         (when (not (empty? todos))
           (r/fragment
             (el/section {:className "main"}
