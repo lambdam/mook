@@ -2,7 +2,7 @@
   (:require [cljs-bean.core :as b]
             [clojure.string :as str]
             [mook.react :as r]
-            [mook.hooks :as mkh]
+            [mook.core :as m]
             [promesa.core :as p]
             [todomvc.helpers :as h]
             [todomvc.commands :as c]
@@ -10,7 +10,7 @@
             [todomvc.lib.keys :as k]))
 
 (defn todo-item [props]
-  (let [state-stores (mkh/use-mook-state-stores)
+  (let [state-stores (m/use-mook-state-stores)
         {:entity.todo/keys [id title completed?]} (b/->clj props)
         [editing? set-editing?] (r/use-state false)
         [edit-text set-edit-text] (r/use-state title)
@@ -61,11 +61,15 @@
 
 (defn new-todo-form [props]
   (let [counter (-> props b/->clj :todomvc-counter)
-        state-stores (mkh/use-mook-state-stores)
+        state-stores (m/use-mook-state-stores)
         [title set-title] (r/use-state "")
-        cntr (mkh/use-state-store :todomvc.store/local-store* (fn counter-handler [] counter))]
+        cntr (m/use-keyed-state-store :todomvc.store/local-store* {::m/params {:counter counter}
+                                                                   ::m/handler (fn [_store {:keys [counter]}]
+                                                                                 counter)})
+        cntrbis (m/use-keyed-state-store :todomvc.store/local-store* {::m/handler (fn [store _]
+                                                                                    (:local/counter store))})]
     (el/header {:className "header"}
-      (el/h1 (str "todos" " " cntr))
+      (el/h1 (str "todos" " " cntr " - " cntrbis))
       (el/input {:className "new-todo"
                 :placeholder "What needs to be done?"
                 :value title
@@ -80,9 +84,9 @@
                 :autoFocus true}))))
 
 (defn root [props]
-  (let [state-stores (mkh/use-mook-state-stores)
-        todos (mkh/use-state-store :todomvc.store/app-store* :app-store/todos)
-        active-filter (mkh/use-state-store :todomvc.store/local-store* :local-store/active-filter)
+  (let [state-stores (m/use-mook-state-stores)
+        todos (m/use-state-store :todomvc.store/app-store* :app-store/todos)
+        active-filter (m/use-state-store :todomvc.store/local-store* :local-store/active-filter)
         all-completed? (every? :entity.todo/completed? todos)]
     (r/fragment
       (el/section {:className "todoapp"}

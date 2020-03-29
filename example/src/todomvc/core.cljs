@@ -9,7 +9,8 @@
 (defonce app-store* (atom {:app-store/todos []}))
 (mk/register-store! :todomvc.store/app-store* app-store*)
 
-(defonce local-store* (atom {:local-store/active-filter :all}))
+(defonce local-store* (atom {:local-store/active-filter :all
+                             :local/counter 0}))
 (mk/register-store! :todomvc.store/local-store* local-store*)
 
 (defonce counter* (atom 0))
@@ -41,7 +42,10 @@
 (when-not @initiated
   (js/setInterval
     #(init!)
-    3000))
+    1000)
+  (js/setInterval
+    #(swap! local-store* update :local/counter inc)
+    1500))
 
 (init!)
 
