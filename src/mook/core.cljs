@@ -53,7 +53,7 @@
   (assert (satisfies? core/IDeref store)
           "A mook store must implement the IDeref protocol")
   (assert (satisfies? Watchable store)
-          "A mook store must implement the mook.hooks/Watchable protocol")
+          "A mook store must implement the mook.core/Watchable protocol")
   (swap! stores* assoc store-key store))
 
 (defn use-state-store [store-key handler]

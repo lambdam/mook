@@ -1,17 +1,16 @@
 (ns todomvc.core
-  (:require [mook.core :as mk]
+  (:require [mook.core :as m]
             [mook.react :as r]
-            [mook.hooks :as h]
             [orchestra-cljs.spec.test :as st]
             [react-dom :as react-dom]
             [todomvc.components :as c]))
 
 (defonce app-store* (atom {:app-store/todos []}))
-(mk/register-store! :todomvc.store/app-store* app-store*)
+(m/register-store! :todomvc.store/app-store* app-store*)
 
 (defonce local-store* (atom {:local-store/active-filter :all
                              :local/counter 0}))
-(mk/register-store! :todomvc.store/local-store* local-store*)
+(m/register-store! :todomvc.store/local-store* local-store*)
 
 (defonce counter* (atom 0))
 (defonce initiated (atom false))
@@ -29,7 +28,7 @@
       (str "Instrumented functions:\n" (with-out-str (cljs.pprint/pprint out)))))
   (println (swap! counter* inc))
   (react-dom/render
-    (h/wrap-with-mook-state-stores-context root-comp)
+    (m/wrap-with-mook-state-stores-context root-comp)
     (js/document.getElementById "main-app")))
 
 (comment
