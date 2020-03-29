@@ -42,9 +42,9 @@
   (remove-watch [this key]
     (core/remove-watch this key)))
 
-(defonce print?* (atom true))
+#_(defonce print?* (atom true))
 
-(defn dev-print! [data color]
+#_(defn dev-print! [data color]
   (when @print?*
     (js/console.log (str "%c" (-> data cljs.pprint/pprint with-out-str))
                     (str "background: " color "; color: white"))))
@@ -61,13 +61,13 @@
                        (get <> store-key)
                        (do (assert <> (str "State store " store-key " does not exist."))
                            <>))
-        _ (dev-print! {:type :every-call
+        #_#__ (dev-print! {:type :every-call
                        :f 'use-state-store
                        :store-key store-key
                        :handler handler
                        :value (handler @state-store*)}
                       "green")
-        [value set-value!] (r/use-state #(do (dev-print! {:type :first-hook-call
+        [value set-value!] (r/use-state #(do #_(dev-print! {:type :first-hook-call
                                                           :f 'use-state-store
                                                           :store-key store-key
                                                           :handler handler
@@ -83,7 +83,7 @@
                                  sub-id
                                  (fn listen-to-store [new-state]
                                    (let [handler' (.-current last-handler-ref)
-                                         new-value #(do (dev-print! {:type :watcher-call
+                                         new-value #(do #_(dev-print! {:type :watcher-call
                                                                      :f 'use-state-store
                                                                      :store-key store-key
                                                                      :handler handler
@@ -100,7 +100,7 @@
     (when (-> first-call?-ref .-current false?)
       (let [new-value (handler @state-store*)]
         (when (not= new-value (.-current last-value-ref))
-          (dev-print! {:type :new-value
+          #_(dev-print! {:type :new-value
                        :f 'use-state-store
                        :handler handler
                        :value new-value}
@@ -115,13 +115,13 @@
                        (get <> store-key)
                        (do (assert <> (str "State store " store-key " does not exist."))
                            <>))
-        _ (dev-print! {:type :every-call
+        #_#__ (dev-print! {:type :every-call
                        :f 'use-keyed-state-store
                        :store-key store-key
                        :params params
                        :value (handler @state-store* params)}
                       "green")
-        [value set-value!] (r/use-state #(do (dev-print! {:type :first-hook-call
+        [value set-value!] (r/use-state #(do #_(dev-print! {:type :first-hook-call
                                                           :f 'use-keyed-state-store
                                                           :store-key store-key
                                                           :params params
@@ -138,7 +138,7 @@
                                  (fn listen-to-store [new-state]
                                    (let [handler' (.-current last-handler-ref)
                                          params' (.-current last-params-ref)
-                                         new-value #(do (dev-print! {:type :watcher-call
+                                         new-value #(do #_(dev-print! {:type :watcher-call
                                                                      :f 'use-keyed-state-store
                                                                      :store-key store-key
                                                                      :params params'
@@ -155,7 +155,7 @@
       (set! (.-current last-params-ref) params)
       (let [new-value (handler @state-store* params)]
         (when (not= new-value (.-current last-value-ref))
-          (dev-print! {:type :new-value
+          #_(dev-print! {:type :new-value
                        :f 'use-keyed-state-store
                        :store-key store-key
                        :params params
@@ -171,14 +171,14 @@
                        (get <> store-key)
                        (do (assert <> (str "State store " store-key " does not exist."))
                            <>))
-        _ (dev-print! {:type :every-call
+        #_#__ (dev-print! {:type :every-call
                        :f 'use-cached-state-store
                        :store-key store-key
                        :params params
                        :value (handler @state-store* params)}
                       "green")
         [value set-value!] (r/use-state (fn []
-                                          (dev-print! {:type :first-hook-call
+                                          #_(dev-print! {:type :first-hook-call
                                                        :f 'use-cached-state-store
                                                        :store-key store-key
                                                        :params params
@@ -204,7 +204,7 @@
                                    (swap! cache* update-in [id ::store] #(do new-state))
                                    (let [handler' (.-current last-handler-ref)
                                          cache @cache*
-                                         new-value #(do (dev-print! {:type :watcher-call
+                                         new-value #(do #_(dev-print! {:type :watcher-call
                                                                      :f 'use-keyed-state-store
                                                                      :store-key store-key
                                                                      :params params
@@ -221,7 +221,7 @@
       (swap! cache* update-in [id ::params] params)
       (let [new-value (handler @state-store* params)]
         (when (not= new-value (get-in @cache* [id ::value]))
-          (dev-print! {:type :new-value
+          #_(dev-print! {:type :new-value
                        :f use-cached-state-store
                        :store-key store-key
                        :params params

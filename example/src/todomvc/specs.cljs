@@ -1,16 +1,14 @@
 (ns todomvc.specs
   (:require [cljs.spec.alpha :as s]
+            [datascript.core :as d]
             [promesa.core :as p]))
 
 ;; # Commands
 
-(s/def :component/title string?)
 (s/def :component/all-completed? boolean?)
 
 (s/def :action/promise
   p/promise?)
-
-(s/def ::id string?)
 
 ;; # Stores
 
@@ -25,20 +23,15 @@
 (s/def :todomvc.store/local-store*
   #(satisfies? cljs.core/IAtom %))
 
-;; ## App store
+;; ## App db
 
-(s/def :entity.todo/id ::id)
-(s/def :entity.todo/title string?)
-(s/def :entity.todo/completed? boolean?)
+(s/def :db/id integer?)
+
+(s/def :todo/title string?)
+(s/def :todo/completed? boolean?)
+(s/def :todo/created-at #(instance? js/Date %))
 
 (s/def :entity/todo
-  (s/keys :req [:entity.todo/id :entity.todo/title :entity.todo/completed?]))
+  (s/keys :req [:db/id :todo/title :todo/completed? :todo/created-at]))
 
-(s/def :app-store/todos
-  (s/coll-of :entity/todo :kind vector?))
-
-(s/def :todomvc.store/app-store
-  (s/keys :req [:app-store/todos]))
-
-(s/def :todomvc.store/app-store*
-  #(satisfies? cljs.core/IAtom %))
+(s/def :todomvc.store/app-db* d/conn?)

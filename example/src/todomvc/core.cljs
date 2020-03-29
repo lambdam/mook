@@ -1,34 +1,44 @@
 (ns todomvc.core
-  (:require [mook.core :as m]
+  (:require [datascript.core :as d]
+            [mook.core :as m]
             [mook.react :as r]
             [orchestra-cljs.spec.test :as st]
             [react-dom :as react-dom]
             [todomvc.components :as c]))
 
-(defonce app-store* (atom {:app-store/todos []}))
-(m/register-store! :todomvc.store/app-store* app-store*)
+(extend-type datascript.db/DB
+  m/Watchable
+  (add-watch [this key f]
+    (m/add-watch this key (fn watch-changes [{:keys [db-after] :as _transaction-data}]
+                            (f db-after))))
+  (remove-watch [this key]
+    (m/remove-watch this key)))
+
+(defonce app-db* (d/create-conn {}))
+(m/register-store! :todomvc.store/app-db* app-db*)
 
 (defonce local-store* (atom {:local-store/active-filter :all
-                             :local/counter 0}))
+                             ;; :local/counter 0
+                             }))
 (m/register-store! :todomvc.store/local-store* local-store*)
 
-(defonce counter* (atom 0))
-(defonce initiated (atom false))
+;; (defonce counter* (atom 0))
+;; (defonce initiated (atom false))
 
-(defn root-comp [props]
+#_(defn root-comp [props]
   (r/create-element c/root (-> (cljs-bean.core/->clj props)
                                (assoc :todomvc-counter @counter*))))
 
 (defn init! []
-  (when-not @initiated
+  #_(when-not @initiated
     (reset! initiated true))
-  #_(let [out (-> (st/instrument)
+  (let [out (-> (st/instrument)
                 sort)]
     (js/console.log
       (str "Instrumented functions:\n" (with-out-str (cljs.pprint/pprint out)))))
-  (println (swap! counter* inc))
+  #_(swap! counter* inc)
   (react-dom/render
-    (m/wrap-with-mook-state-stores-context root-comp)
+    (m/wrap-with-mook-state-stores-context c/root)
     (js/document.getElementById "main-app")))
 
 (comment
@@ -38,7 +48,7 @@
 #_(defn reload! []
   (init!))
 
-(when-not @initiated
+#_(when-not @initiated
   (js/setInterval
     #(init!)
     1000)

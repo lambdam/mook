@@ -1,14 +1,14 @@
 {:deps {org.clojure/clojure {:mvn/version "1.10.0"}
         org.clojure/clojurescript {:mvn/version "1.10.597"}
-        ;; cljsjs/react-dom-server {:mvn/version "15.3.1-0"} ;; for sablono
-        ;; cljsjs/react-dom {:mvn/version "15.3.1-0"}        ;; for sablono
-        ;; cljsjs/react {:mvn/version "15.3.1-0"}            ;; for sablono
-        ;; sablono {:mvn/version "0.7.5"}
-        mook {:local/root "../../mook"}
+        ;; mook {:local/root "../../mook"}
         cljsjs/react-dom {:mvn/version "16.13.0-0"}
         datascript {:mvn/version "0.18.10"}
         orchestra {:mvn/version "2019.02.06-1"}
         com.bhauman/figwheel-main {:mvn/version "0.2.3"}
-        com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}}
- :paths ["src" "resources" "target"]
+        com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
+        ;; Mook dependencies
+        cljsjs/react {:mvn/version "16.13.0-0"}
+        funcool/promesa {:mvn/version "5.1.0"}
+        cljs-bean {:mvn/version "1.5.0"}}
+ :paths ["src" "../src" "resources" "target"]
  :aliases {:build {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}}}
