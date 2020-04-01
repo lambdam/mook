@@ -1,7 +1,5 @@
 (ns mook.core
-  (:refer-clojure :exclude [add-watch remove-watch])
   (:require [cljs.spec.alpha :as s]
-            [clojure.core :as core]
             [mook.react :as r]
             [promesa.core :as p]))
 
@@ -31,16 +29,23 @@
       deref))
 
 (defprotocol Watchable
-  (add-watch [this key f])
-  (remove-watch [this key]))
+  (listen! [this key f])
+  (unlisten! [this key]))
 
-(extend-type core/Atom
+(s/def ::new-state any?)
+(s/def ::listener-data
+  (s/keys :req [::new-state]))
+
+(extend-type Atom
   Watchable
-  (add-watch [this key f]
-    (core/add-watch this key (fn watch-changes [_key _atom _old-value new-value]
-                               (f new-value))))
-  (remove-watch [this key]
-    (core/remove-watch this key)))
+  (listen! [this key f]
+    (add-watch this key (fn watch-changes [key ref old-state new-state]
+                               (f {::new-state new-state
+                                   ::old-state old-state
+                                   ::ref ref
+                                   ::key key}))))
+  (unlisten! [this key]
+    (remove-watch this key)))
 
 #_(defonce print?* (atom true))
 
@@ -50,7 +55,7 @@
                     (str "background: " color "; color: white"))))
 
 (defn register-store! [store-key store]
-  (assert (satisfies? core/IDeref store)
+  (assert (satisfies? IDeref store)
           "A mook store must implement the IDeref protocol")
   (assert (satisfies? Watchable store)
           "A mook store must implement the mook.core/Watchable protocol")
@@ -79,22 +84,23 @@
         last-handler-ref (r/use-ref handler)]
     (r/use-effect (fn use-reactive-state-effect []
                     (let [sub-id (swap! listener-id-counter* inc)]
-                      (add-watch state-store*
-                                 sub-id
-                                 (fn listen-to-store [new-state]
-                                   (let [handler' (.-current last-handler-ref)
-                                         new-value #(do #_(dev-print! {:type :watcher-call
+                      (listen! state-store*
+                               sub-id
+                               (fn listen-to-store [{::keys [new-state] :as data}]
+                                 (s/assert ::listener-data data)
+                                 (let [handler' (.-current last-handler-ref)
+                                       new-value #(do #_(dev-print! {:type :watcher-call
                                                                      :f 'use-state-store
                                                                      :store-key store-key
                                                                      :handler handler
                                                                      :value (handler' new-state)}
                                                                     "red")
-                                                        (handler' new-state))]
-                                     (when (not= new-value (.-current last-value-ref))
-                                       (set! (.-current last-value-ref) new-value)
-                                       (set-value! new-value)))))
+                                                      (handler' new-state))]
+                                   (when (not= new-value (.-current last-value-ref))
+                                     (set! (.-current last-value-ref) new-value)
+                                     (set-value! new-value)))))
                       (fn remove-store-watch []
-                        (remove-watch state-store* sub-id))))
+                        (unlisten! state-store* sub-id))))
                   #js [])
     (set! (.-current last-handler-ref) handler)
     (when (-> first-call?-ref .-current false?)
@@ -133,23 +139,24 @@
         last-handler-ref (r/use-ref handler)]
     (r/use-effect (fn use-reactive-state-effect []
                     (let [sub-id (swap! listener-id-counter* inc)]
-                      (add-watch state-store*
-                                 sub-id
-                                 (fn listen-to-store [new-state]
-                                   (let [handler' (.-current last-handler-ref)
-                                         params' (.-current last-params-ref)
-                                         new-value #(do #_(dev-print! {:type :watcher-call
+                      (listen! state-store*
+                               sub-id
+                               (fn listen-to-store [{::keys [new-state] :as data}]
+                                 (s/assert ::listener-data data)
+                                 (let [handler' (.-current last-handler-ref)
+                                       params' (.-current last-params-ref)
+                                       new-value #(do #_(dev-print! {:type :watcher-call
                                                                      :f 'use-keyed-state-store
                                                                      :store-key store-key
                                                                      :params params'
                                                                      :value (handler' new-state params')}
                                                                     "red")
-                                                        (handler' new-state params'))]
-                                     (when (not= new-value (.-current last-value-ref))
-                                       (set! (.-current last-value-ref) new-value)
-                                       (set-value! new-value)))))
+                                                      (handler' new-state params'))]
+                                   (when (not= new-value (.-current last-value-ref))
+                                     (set! (.-current last-value-ref) new-value)
+                                     (set-value! new-value)))))
                       (fn remove-store-watch []
-                        (remove-watch state-store* sub-id))))
+                        (unlisten! state-store* sub-id))))
                   #js [])
     (when (not= params (.-current last-params-ref))
       (set! (.-current last-params-ref) params)
@@ -198,24 +205,25 @@
         last-handler-ref (r/use-ref handler)]
     (r/use-effect (fn use-reactive-state-effect []
                     (let [sub-id (swap! listener-id-counter* inc)]
-                      (add-watch state-store*
-                                 sub-id
-                                 (fn listen-to-store [new-state]
-                                   (swap! cache* update-in [id ::store] #(do new-state))
-                                   (let [handler' (.-current last-handler-ref)
-                                         cache @cache*
-                                         new-value #(do #_(dev-print! {:type :watcher-call
+                      (listen! state-store*
+                               sub-id
+                               (fn listen-to-store [{::keys [new-state] :as data}]
+                                 (s/assert ::listener-data data)
+                                 (swap! cache* update-in [id ::store] #(do new-state))
+                                 (let [handler' (.-current last-handler-ref)
+                                       cache @cache*
+                                       new-value #(do #_(dev-print! {:type :watcher-call
                                                                      :f 'use-keyed-state-store
                                                                      :store-key store-key
                                                                      :params params
                                                                      :value (handler' new-state (get-in cache [id ::params]))}
                                                                     "red")
-                                                        (handler' new-state (get-in cache [id ::params])))]
-                                     (when (not= new-value (get-in cache [id ::value]))
-                                       (swap! cache* update-in [id ::value] #(do new-value))
-                                       (set-value! new-value)))))
+                                                      (handler' new-state (get-in cache [id ::params])))]
+                                   (when (not= new-value (get-in cache [id ::value]))
+                                     (swap! cache* update-in [id ::value] #(do new-value))
+                                     (set-value! new-value)))))
                       (fn remove-store-watch []
-                        (remove-watch state-store* sub-id))))
+                        (unlisten! state-store* sub-id))))
                   #js [])
     (when (not= params (get-in @cache* [id ::params]))
       (swap! cache* update-in [id ::params] params)

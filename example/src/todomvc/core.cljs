@@ -8,11 +8,12 @@
 
 (extend-type datascript.db/DB
   m/Watchable
-  (add-watch [this key f]
-    (m/add-watch this key (fn watch-changes [{:keys [db-after] :as _transaction-data}]
-                            (f db-after))))
-  (remove-watch [this key]
-    (m/remove-watch this key)))
+  (m/listen! [this key f]
+    (d/listen! this key (fn watch-changes [{:keys [db-after db-before] :as _transaction-data}]
+                            (f {::new-value db-after
+                                ::old-value db-before}))))
+  (m/unlisten! [this key]
+    (d/unlisten! this key)))
 
 (defonce app-db* (d/create-conn {}))
 (m/register-store! :todomvc.store/app-db* app-db*)
