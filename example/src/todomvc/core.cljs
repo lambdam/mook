@@ -2,6 +2,7 @@
   (:require [datascript.core :as d]
             [mook.core :as m]
             [mook.react :as r]
+            [mook.react :as mr]
             [orchestra-cljs.spec.test :as st]
             [react-dom :as react-dom]
             [todomvc.components :as c]))
@@ -16,6 +17,7 @@
     (d/unlisten! this key)))
 
 (defonce app-db* (d/create-conn {}))
+
 (m/register-store! :todomvc.store/app-db* app-db*)
 
 (defonce local-store* (atom {:local-store/active-filter :all
@@ -39,7 +41,8 @@
       (str "Instrumented functions:\n" (with-out-str (cljs.pprint/pprint out)))))
   #_(swap! counter* inc)
   (react-dom/render
-    (m/wrap-with-mook-state-stores-context c/root)
+    (m/mook-state-store-container
+      (mr/create-element c/root))
     (js/document.getElementById "main-app")))
 
 (comment
