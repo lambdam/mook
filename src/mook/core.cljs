@@ -1,5 +1,5 @@
 (ns mook.core
-  (:require [cljs.spec.alpha :as s]
+  (:require [clojure.spec.alpha :as s]
             [mook.react :as mr]
             [promesa.core :as p])
   (:require-macros [mook.log :as log]))
