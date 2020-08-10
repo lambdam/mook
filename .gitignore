@@ -6,3 +6,4 @@ node_modules/
 /flappy-bird-demo-new/
 .nrepl-port
 .cljs_node_repl/
+/out/
