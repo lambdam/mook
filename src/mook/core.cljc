@@ -409,7 +409,7 @@
            prom
            #(send-command>> (merge % context)))))
 
-     (s/fdef chain-command>>
+     (s/fdef chain-command
        :args (s/cat :context ::input-context)
        :ret fn?)
 
