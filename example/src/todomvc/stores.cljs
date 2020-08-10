@@ -23,8 +23,9 @@
   m/Watchable
   (m/listen! [this key f]
     (d/listen! this key (fn watch-changes [{:keys [db-after db-before] :as _transaction-data}]
-                          (f {::new-value db-after
-                              ::old-value db-before}))))
+                          (f {::new-state db-after
+                              ::old-state db-before
+                              }))))
   (m/unlisten! [this key]
     (d/unlisten! this key)))
 
