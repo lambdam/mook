@@ -61,11 +61,12 @@
      (extend-type Atom
        Watchable
        (listen! [this key f]
-         (add-watch this key (fn watch-changes [key ref old-state new-state]
+         (add-watch this key (fn watch-changes [_key _ref _old-state new-state]
                                (f {::new-state new-state
-                                   ::old-state old-state
-                                   ::ref ref
-                                   ::key key}))))
+                                   ;; ::old-state _old-state
+                                   ;; ::ref _ref
+                                   ;; ::key _key
+                                   }))))
        (unlisten! [this key]
          (remove-watch this key)))
 
