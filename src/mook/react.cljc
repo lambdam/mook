@@ -1,9 +1,6 @@
 (ns mook.react
-  (:require #_["react" :as react]
-            #_["react-dom" :as react-dom]
-            [clojure.string :as str]
+  (:require [clojure.string :as str]
             #?(:clj [clojure.spec.alpha :as s])
-            #?(:cljs [react :as react])
             #?(:cljs [cljs-bean.core :as b]))
   #?(:cljs
      (:require-macros [mook.react :refer [def-elems]])))
@@ -12,7 +9,7 @@
    (do
 
      (def ^:private createElement
-       react/createElement)
+       js/React.createElement)
 
      (defn create-element
        ([comp]
@@ -67,10 +64,10 @@
           (apply createElement comp nil opts el1 el2 el3 el4 el5 el6 el7 el8 el9 el10 children))))
 
      (def fragment
-       (partial create-element react/Fragment))
+       (partial create-element js/React.Fragment))
 
      (defn create-context [default-value]
-       (let [context (react/createContext default-value)
+       (let [context (js/React.createContext default-value)
              provider-class (.-Provider context)]
          {::context context
           ::provider-class provider-class
@@ -78,16 +75,16 @@
           ::consumer (.-Consumer context)}))
 
      (def use-state
-       react/useState)
+       js/React.useState)
 
      (def use-effect
-       react/useEffect)
+       js/React.useEffect)
 
      (def use-context
-       react/useContext)
+       js/React.useContext)
 
      (def use-ref
-       react/useRef)
+       js/React.useRef)
 
      ;; Utility
 
