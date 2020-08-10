@@ -5,3 +5,4 @@ node_modules/
 /example/target/
 /flappy-bird-demo-new/
 .nrepl-port
+.cljs_node_repl/
