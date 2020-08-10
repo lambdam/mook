@@ -1,0 +1,6 @@
+{:main mook.core
+ :pretty-print false
+ :optimizations :simple
+ :optimize-constants true
+ :static-fns true
+ }
