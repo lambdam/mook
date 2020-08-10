@@ -103,13 +103,48 @@
      ))
 
 #?(:clj
+   (defn create-element-renderer [element]
+     ;; !!! SSR is WIP. No usable for the time being.
+     (fn render-element
+       ([]
+          (render-element nil))
+       ([attrs & children]
+        (cond
+          (map? attrs)
+          (-> (apply str
+                     "<" element
+                     (reduce-kv (fn [acc k v]
+                                  (str acc " " (name k) \= \"  v \"))
+                                ""
+                                attrs)
+                     ">"
+                     children)
+              (str "</" element ">"))
+          ;; ---
+          (nil? attrs)
+          (-> (apply str
+                     "<" element ">"
+                     children)
+              (str "</" element ">"))
+          ;; ---
+          :else
+          (-> (apply str
+                     "<" element ">"
+                     attrs
+                     children)
+              (str "</" element ">"))))))
+   :cljs
+   (defn create-element-renderer [element]
+     (partial mook.react/create-element element)))
+
+#?(:clj
    (do
 
      (defmacro def-elems [names]
        (s/assert (s/map-of symbol? any?) names)
        `(do ~@(for [[sym# component#] names]
                 `(def ~sym#
-                   (partial mook.react/create-element ~component#)))))
+                   (create-element-renderer ~component#)))))
 
      (defmacro def-html-elems! []
        ;; https://gist.github.com/bramus/a9c1bad426e6f4fd9af0f19ecb2e24a3
