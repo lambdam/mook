@@ -1,9 +1,7 @@
 (ns mook.react
   (:require [clojure.string :as str]
             #?(:clj [clojure.spec.alpha :as s])
-            #?(:cljs [cljs-bean.core :as b]))
-  #?(:cljs
-     (:require-macros [mook.react :refer [def-elems]])))
+            #?(:cljs [cljs-bean.core :as b])))
 
 #?(:cljs
    (do
