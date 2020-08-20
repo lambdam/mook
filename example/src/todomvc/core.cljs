@@ -4,6 +4,7 @@
             [mook.react :as r]
             [mook.react :as mr]
             [orchestra-cljs.spec.test :as st]
+            react
             [react-dom :as react-dom]
             [todomvc.components :as c]))
 
