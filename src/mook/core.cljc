@@ -25,9 +25,6 @@
      (defonce listener-id-counter*
        (atom 0))
 
-     (defonce cache*
-       (atom {}))
-
      (defonce stores*
        (atom {}))
 
@@ -237,105 +234,6 @@
      (s/fdef use-param-state-store
        :args (s/cat :store-key keyword?
                     :data (s/keys :req [::params ::handler])
-                    :debug (s/? any?))
-       :ret any?)
-
-     ;; ---
-
-     (defn use-cached-state-store
-       ([store-key data]
-        (use-cached-state-store store-key data nil))
-       ([store-key {::keys [id params handler]} debug-info]
-        (let [state-store* (as-> (use-mook-state-stores) <>
-                             (get <> store-key)
-                             (do (assert <> (str "State store " store-key " does not exist."))
-                                 <>))
-              [value set-value!] (mr/use-state (fn []
-                                                 (let [store @state-store*
-                                                       cache @cache*]
-                                                   (if (and (contains? cache id)
-                                                            (identical? store (get-in cache [id ::store]))
-                                                            (= params (get-in cache [id ::params])))
-                                                     (get-in @cache* [id ::value])
-                                                     (let [value (handler @state-store* params)]
-                                                       (dev-print! {:type :first-hook-call
-                                                                    :f 'use-cached-state-store
-                                                                    :store-key store-key
-                                                                    :id id
-                                                                    :params params
-                                                                    :value value
-                                                                    :debug-info debug-info}
-                                                                   "blue")
-                                                       (swap! cache* update id #(do {::id id
-                                                                                     ::value value
-                                                                                     ::params params
-                                                                                     ::store store
-                                                                                     ::store-key store-key}))
-                                                       value)))))
-              last-handler-ref (mr/use-ref handler)]
-          (mr/use-effect (fn use-reactive-state-effect []
-                           (let [sub-id (swap! listener-id-counter* inc)]
-                             (listen! state-store*
-                                      sub-id
-                                      (fn listen-to-store [{::keys [new-state] :as data}]
-                                        (s/assert ::listener-data data)
-                                        (swap! cache* update-in [id ::store] #(do new-state))
-                                        (let [handler' (.-current last-handler-ref)
-                                              cache @cache*
-                                              new-value (let [value (handler' new-state (get-in cache [id ::params]))]
-                                                          (dev-print! {:type :watcher-call
-                                                                       :f 'use-cached-state-store
-                                                                       :store-key store-key
-                                                                       :id id
-                                                                       :params params
-                                                                       :value value
-                                                                       :debug-info debug-info}
-                                                                      "red")
-                                                          value)]
-                                          (when (not= new-value (get-in cache [id ::value]))
-                                            (dev-print! {:type :rerender-on-watcher-call
-                                                         :f 'use-cached-state-store
-                                                         :store-key store-key
-                                                         :id id
-                                                         :params params
-                                                         :old-value (get-in cache [id ::value])
-                                                         :new-value new-value
-                                                         :debug-info debug-info}
-                                                        "darkviolet")
-                                            (swap! cache* update-in [id ::value] #(do new-value))
-                                            (set-value! new-value)))))
-                             (fn remove-store-watch []
-                               (unlisten! state-store* sub-id))))
-                         #js [])
-          (when (not= params (get-in @cache* [id ::params]))
-            (swap! cache* update-in [id ::params] params)
-            (let [new-value (handler @state-store* params)]
-              (dev-print! {:type :check-new-value
-                           :f 'use-cached-state-store
-                           :store-key store-key
-                           :id id
-                           :params params
-                           :value new-value
-                           :debug-info debug-info}
-                          "green")
-              (when (not= new-value (get-in @cache* [id ::value]))
-                (dev-print! {:type :rerender-on-new-value
-                             :f 'use-cached-state-store
-                             :store-key store-key
-                             :id id
-                             :params params
-                             :old-value (get-in @cache* [id ::value])
-                             :new-value new-value
-                             :debug-info debug-info}
-                            "maroon")
-                (swap! cache* update-in [id ::value] new-value)
-                (set-value! new-value))))
-          (set! (.-current last-handler-ref) handler)
-          value)))
-
-     (s/fdef use-cached-state-store
-       :args (s/cat :store-key keyword?
-                    :data (s/keys :req [::id ::params ::handler])
                     :debug (s/? any?))
        :ret any?)
 
