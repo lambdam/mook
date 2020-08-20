@@ -272,7 +272,7 @@
        (p/rejected (ex-info (str "No dispatch method for type: " type)
                             context)))
 
-     ;; !!! using multimethod would throw the following error on refresh with (st/instrument) "activated"
+     ;; !!! using multimethod instead of an atom was throwing the following error on refresh with (st/instrument) "activated"
 
      ;; ExceptionsManager.js:82 Error: No protocol method IMultiFn.-add-method defined for type function: function (var_args){
      ;; var args = null;
