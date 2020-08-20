@@ -87,12 +87,12 @@
      ;; Utility
 
      (defn classes [prop-map]
-       (->> (reduce (fn [acc [prop pred?]]
-                      (if pred?
-                        (conj acc (name prop))
-                        acc))
-                    []
-                    prop-map)
+       (->> prop-map
+            (reduce-kv (fn [acc prop pred?]
+                         (if pred?
+                           (conj acc (name prop))
+                           acc))
+                       [])
             (str/join " ")))
 
      ))
