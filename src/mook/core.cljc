@@ -46,14 +46,19 @@
        (listen! [this key f])
        (unlisten! [this key]))
 
-     (s/def ::new-state any?)
-     (s/def ::listener-data
-       (s/keys :req [::new-state]))
+     ))
 
-     (s/def ::id (s/or :keyword keyword? :string string?))
-     (s/def ::store-key keyword?)
-     (s/def ::params (s/map-of keyword? any?))
-     (s/def ::handler ifn?)
+(s/def ::new-state any?)
+(s/def ::listener-data
+  (s/keys :req [::new-state]))
+
+(s/def ::id (s/or :keyword keyword? :string string?))
+(s/def ::store-key keyword?)
+(s/def ::params (s/map-of keyword? any?))
+(s/def ::handler ifn?)
+
+#?(:cljs
+   (do
 
      (extend-type Atom
        Watchable
@@ -237,16 +242,21 @@
                     :debug (s/? any?))
        :ret any?)
 
-     ;; # Commands
+     ))
 
-     (s/def ::type keyword?)
-     (s/def ::context
-       (s/keys :opt [::type]))
-     (s/def ::input-context
-       (s/keys :req [::type]))
+;; # Commands
 
-     ;; On command error
-     (s/def ::cmd-error-type keyword?)
+(s/def ::type keyword?)
+(s/def ::context
+  (s/keys :opt [::type]))
+(s/def ::input-context
+  (s/keys :req [::type]))
+
+;; On command error
+(s/def ::cmd-error-type keyword?)
+
+#?(:cljs
+   (do
 
      (defn command-dispatch [{::keys [type]}]
        type)
