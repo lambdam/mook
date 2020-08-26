@@ -82,8 +82,7 @@
      ;; TODO: check if there can be an edge case where a store update but its
      ;; hanlder closes over an old value and update a wrong state.
      (defn use-state-store
-       ([store-key handler] (use-state-store store-key handler nil))
-       ([store-key handler debug-info]
+       ([{::keys [store-key handler debug-info]}]
         (let [state-store* (as-> (use-mook-state-stores) <>
                              (get <> store-key)
                              (do (assert <> (str "State store " store-key " does not exist."))
@@ -151,9 +150,12 @@
                 (set! (.-current last-value-ref) new-value)
                 (set-value! new-value))))
           (set! (.-current first-call?-ref) false)
-          value)))
+          value))
+       ([store-key handler] (use-state-store {::store-key store-key
+                                              ::handler  handler})))
 
-     (s/fdef use-state-store
+     ;; TODO: redo spec
+     #_(s/fdef use-state-store
        :args (s/cat :store-key keyword?
                     :handler ::handler
                     :debug (s/? any?))
@@ -162,14 +164,12 @@
      ;; ---
 
      (defn use-param-state-store
-       ([store-key data]
-        (use-param-state-store store-key data nil))
-       ([store-key {::keys [params handler]} debug-info]
+       ([{::keys [store-key params handler debug-info]}]
         (let [state-store* (as-> (use-mook-state-stores) <>
                              (get <> store-key)
                              (do (assert <> (str "State store " store-key " does not exist."))
                                  <>))
-              [value set-value!] (mr/use-state #(let [value (handler @state-store* params)]
+              [value set-value!] (mr/use-state #(let [value (handler @state-store*)]
                                                   (dev-print! {:type :first-hook-call
                                                                :f 'use-param-state-store
                                                                :store-key store-key
@@ -189,7 +189,7 @@
                                         (s/assert ::listener-data data)
                                         (let [handler' (.-current last-handler-ref)
                                               params' (.-current last-params-ref)
-                                              new-value (let [value (handler' new-state params')]
+                                              new-value (let [value (handler' new-state)]
                                                           (dev-print! {:type :watcher-call
                                                                        :f 'use-param-state-store
                                                                        :store-key store-key
@@ -214,7 +214,7 @@
                          #js [])
           (when (not= params (.-current last-params-ref))
             (set! (.-current last-params-ref) params)
-            (let [new-value (handler @state-store* params)]
+            (let [new-value (handler @state-store*)]
               (dev-print! {:type :check-new-value
                            :f 'use-param-state-store
                            :store-key store-key
@@ -234,9 +234,14 @@
                 (set! (.-current last-value-ref) new-value)
                 (set-value! new-value))))
           (set! (.-current last-handler-ref) handler)
-          value)))
+          value))
+       ([store-key params handler]
+        (use-param-state-store {::store-key store-key
+                                ::params params
+                                ::handler handler})))
 
-     (s/fdef use-param-state-store
+     ;; TODO: redo spec
+     #_(s/fdef use-param-state-store
        :args (s/cat :store-key keyword?
                     :data (s/keys :req [::params ::handler])
                     :debug (s/? any?))
