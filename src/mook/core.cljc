@@ -48,14 +48,14 @@
 
      ))
 
+(s/def ::store-key keyword?)
+(s/def ::params any?)
+(s/def ::handler ifn?)
+(s/def ::debug-info any?)
+
 (s/def ::new-state any?)
 (s/def ::listener-data
   (s/keys :req [::new-state]))
-
-(s/def ::id (s/or :keyword keyword? :string string?))
-(s/def ::store-key keyword?)
-(s/def ::params (s/map-of keyword? any?))
-(s/def ::handler ifn?)
 
 #?(:cljs
    (do
@@ -79,8 +79,6 @@
                (str "Error on store registration for: " store-key ". A mook store must implement the mook.core/Watchable protocol"))
        (swap! stores* assoc store-key store))
 
-     ;; TODO: check if there can be an edge case where a store update but its
-     ;; hanlder closes over an old value and update a wrong state.
      (defn use-state-store
        ([{::keys [store-key handler debug-info]}]
         (let [state-store* (as-> (use-mook-state-stores) <>
@@ -154,11 +152,11 @@
        ([store-key handler] (use-state-store {::store-key store-key
                                               ::handler  handler})))
 
-     ;; TODO: redo spec
-     #_(s/fdef use-state-store
-       :args (s/cat :store-key keyword?
-                    :handler ::handler
-                    :debug (s/? any?))
+     (s/fdef use-state-store
+       :args (s/alt :unary (s/keys :req [::store-key ::handler]
+                                   :opt [::debug-info])
+                    :binary (s/cat :store-key ::store-key
+                                   :handler ::handler))
        :ret any?)
 
      ;; ---
@@ -240,11 +238,29 @@
                                 ::params params
                                 ::handler handler})))
 
-     ;; TODO: redo spec
-     #_(s/fdef use-param-state-store
-       :args (s/cat :store-key keyword?
-                    :data (s/keys :req [::params ::handler])
-                    :debug (s/? any?))
+     (s/fdef use-param-state-store
+       :args (s/alt :unary (s/keys :req [::store-key ::params ::handler]
+                                   :opt [::debug-info])
+                    :ternary (s/cat :store-key ::store-key
+                                    :params ::params
+                                    :handler ::handler))
+       :ret any?)
+
+     ;; ---
+
+     ;; Utility function in case we need some values on every component call
+     (defn run-on-state-stores [store-keys handler]
+       (let [stores @stores*]
+         (doseq [store-key store-keys]
+           (assert (contains? stores store-key)
+                   (str "Try to run handler on non registered store: " store-key)))
+         (->> store-keys
+              (map #(-> (get stores %) deref))
+              (apply handler))))
+
+     (s/fdef run-on-state-stores
+       :args (s/cat :store-keys (s/coll-of ::store-key :kind vector?)
+                    :handler ifn?)
        :ret any?)
 
      ))
@@ -256,9 +272,6 @@
   (s/keys :opt [::type]))
 (s/def ::input-context
   (s/keys :req [::type]))
-
-;; On command error
-(s/def ::cmd-error-type keyword?)
 
 #?(:cljs
    (do
@@ -340,21 +353,5 @@
      (defn chain-context [handler]
        (fn [context]
          (chain-context' handler context)))
-
-     ;; ---
-
-     (defn run-on-state-stores [store-keys handler]
-       (let [stores @stores*]
-         (doseq [store-key store-keys]
-           (assert (contains? stores store-key)
-                   (str "Try to run handler on non registered store: " store-key)))
-         (->> store-keys
-              (map #(-> (get stores %) deref))
-              (apply handler))))
-
-     (s/fdef run-on-state-stores
-       :args (s/cat :store-keys (s/coll-of keyword? :kind vector?)
-                    :handler ifn?)
-       :ret any?)
 
      ))
