@@ -1,21 +1,16 @@
-# MOOK
+# Mook
 
-MOnads & hoOKs for frontend applications with ClojureScript and React.
+Mook is a library designed to handle frontend application state(s).
+It serves the same purpose than re-frame.
 
-Monads because it sounds clever.
+## Documentation
 
-Hooks because it's the future.
+WIP
 
-## Slack Clojurians
 
-20/03/2020
+## Why "Mook"
 
-dam  20 h 47
-Hello,
-I am discovering shadow-cljs for a personal project. I use Emacs. I'm used to figwheel way of working.
-When there is a compilation error (for any reason), the completion in Emacs ceases to work. This makes coding quite painful. It's not the case in figwheel.
-Will it change in future versions?
-Thanks
+The main tools used in Mook are Promises and Hooks.
 
-dpsutton  20 h 55
-can you open an issue on cider's github issue tracker with a minimal repro and I can attempt to find out what's going on?
+We could craft names such as "Pook" or "Prooks"... but it doesn't sound well.
+And since promises and monads are conceptually very close, we can say that the library is about MOnads and hoOKs.
