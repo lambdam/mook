@@ -76,16 +76,16 @@
 (defn root [props]
   (let [todos (m/use-param-state-store
                 ::stores/app-db*
-                {::m/params {}
-                 ::m/handler (fn [db _]
-                               (as-> db <>
-                                 (d/q '[:find [?e ...]
-                                        :where [?e :todo/title]]
-                                      <>)
-                                 (d/pull-many db '[*] <>)
-                                 (sort-by :todo/created-at
-                                          #(compare %2 %1)
-                                          <>)))})
+                {}
+                (fn [db _]
+                  (as-> db <>
+                    (d/q '[:find [?e ...]
+                           :where [?e :todo/title]]
+                         <>)
+                    (d/pull-many db '[*] <>)
+                    (sort-by :todo/created-at
+                             #(compare %2 %1)
+                             <>))))
         active-filter (m/use-state-store ::stores/local-store* ::b-ui/active-filter)
         all-completed? (every? :todo/completed? todos)]
     (r/fragment
