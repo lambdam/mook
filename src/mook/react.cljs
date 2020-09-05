@@ -1,67 +1,65 @@
 (ns mook.react
-  (:require [clojure.string :as str]
-            [cljs-bean.core :as b]))
-
-(def ^:private createElement
-  js/React.createElement)
+  (:require [cljs-bean.core :as b]
+            [react :as react]
+            [clojure.string :as str]))
 
 (defn create-element
   ([comp]
-   (createElement comp nil))
+   (react/createElement comp nil))
   ([comp opts]
    (if (map? opts)
-     (createElement comp (b/->js opts))
-     (createElement comp nil opts)))
+     (react/createElement comp (b/->js opts))
+     (react/createElement comp nil opts)))
   ([comp opts el1]
    (if (map? opts)
-     (createElement comp (b/->js opts) el1)
-     (createElement comp nil opts el1)))
+     (react/createElement comp (b/->js opts) el1)
+     (react/createElement comp nil opts el1)))
   ([comp opts el1 el2]
    (if (map? opts)
-     (createElement comp (b/->js opts) el1 el2)
-     (createElement comp nil opts el1 el2)))
+     (react/createElement comp (b/->js opts) el1 el2)
+     (react/createElement comp nil opts el1 el2)))
   ([comp opts el1 el2 el3]
    (if (map? opts)
-     (createElement comp (b/->js opts) el1 el2 el3)
-     (createElement comp nil opts el1 el2 el3)))
+     (react/createElement comp (b/->js opts) el1 el2 el3)
+     (react/createElement comp nil opts el1 el2 el3)))
   ([comp opts el1 el2 el3 el4]
    (if (map? opts)
-     (createElement comp (b/->js opts) el1 el2 el3 el4)
-     (createElement comp nil opts el1 el2 el3 el4)))
+     (react/createElement comp (b/->js opts) el1 el2 el3 el4)
+     (react/createElement comp nil opts el1 el2 el3 el4)))
   ([comp opts el1 el2 el3 el4 el5]
    (if (map? opts)
-     (createElement comp (b/->js opts) el1 el2 el3 el4 el5)
-     (createElement comp nil opts el1 el2 el3 el4 el5)))
+     (react/createElement comp (b/->js opts) el1 el2 el3 el4 el5)
+     (react/createElement comp nil opts el1 el2 el3 el4 el5)))
   ([comp opts el1 el2 el3 el4 el5 el6]
    (if (map? opts)
-     (createElement comp (b/->js opts) el1 el2 el3 el4 el5 el6)
-     (createElement comp nil opts el1 el2 el3 el4 el5 el6)))
+     (react/createElement comp (b/->js opts) el1 el2 el3 el4 el5 el6)
+     (react/createElement comp nil opts el1 el2 el3 el4 el5 el6)))
   ([comp opts el1 el2 el3 el4 el5 el6 el7]
    (if (map? opts)
-     (createElement comp (b/->js opts) el1 el2 el3 el4 el5 el6 el7)
-     (createElement comp nil opts el1 el2 el3 el4 el5 el6 el7)))
+     (react/createElement comp (b/->js opts) el1 el2 el3 el4 el5 el6 el7)
+     (react/createElement comp nil opts el1 el2 el3 el4 el5 el6 el7)))
   ([comp opts el1 el2 el3 el4 el5 el6 el7 el8]
    (if (map? opts)
-     (createElement comp (b/->js opts) el1 el2 el3 el4 el5 el6 el7 el8)
-     (createElement comp nil opts el1 el2 el3 el4 el5 el6 el7 el8)))
+     (react/createElement comp (b/->js opts) el1 el2 el3 el4 el5 el6 el7 el8)
+     (react/createElement comp nil opts el1 el2 el3 el4 el5 el6 el7 el8)))
   ([comp opts el1 el2 el3 el4 el5 el6 el7 el8 el9]
    (if (map? opts)
-     (createElement comp (b/->js opts) el1 el2 el3 el4 el5 el6 el7 el8 el9)
-     (createElement comp nil opts el1 el2 el3 el4 el5 el6 el7 el8 el9)))
+     (react/createElement comp (b/->js opts) el1 el2 el3 el4 el5 el6 el7 el8 el9)
+     (react/createElement comp nil opts el1 el2 el3 el4 el5 el6 el7 el8 el9)))
   ([comp opts el1 el2 el3 el4 el5 el6 el7 el8 el9 el10]
    (if (map? opts)
-     (createElement comp (b/->js opts) el1 el2 el3 el4 el5 el6 el7 el8 el9 el10)
-     (createElement comp nil opts el1 el2 el3 el4 el5 el6 el7 el8 el9 el10)))
+     (react/createElement comp (b/->js opts) el1 el2 el3 el4 el5 el6 el7 el8 el9 el10)
+     (react/createElement comp nil opts el1 el2 el3 el4 el5 el6 el7 el8 el9 el10)))
   ([comp opts el1 el2 el3 el4 el5 el6 el7 el8 el9 el10 & children]
    (if (map? opts)
-     (apply createElement comp (b/->js opts) el1 el2 el3 el4 el5 el6 el7 el8 el9 el10 children)
-     (apply createElement comp nil opts el1 el2 el3 el4 el5 el6 el7 el8 el9 el10 children))))
+     (apply react/createElement comp (b/->js opts) el1 el2 el3 el4 el5 el6 el7 el8 el9 el10 children)
+     (apply react/createElement comp nil opts el1 el2 el3 el4 el5 el6 el7 el8 el9 el10 children))))
 
 (def fragment
-  (partial create-element js/React.Fragment))
+  (partial create-element react/Fragment))
 
 (defn create-context [default-value]
-  (let [context (js/React.createContext default-value)
+  (let [context (react/createContext default-value)
         provider-class (.-Provider context)]
     {::context context
      ::provider-class provider-class
@@ -69,16 +67,16 @@
      ::consumer (.-Consumer context)}))
 
 (def use-state
-  js/React.useState)
+  react/useState)
 
 (def use-effect
-  js/React.useEffect)
+  react/useEffect)
 
 (def use-context
-  js/React.useContext)
+  react/useContext)
 
 (def use-ref
-  js/React.useRef)
+  react/useRef)
 
 ;; Utility
 
