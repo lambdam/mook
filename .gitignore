@@ -7,3 +7,4 @@ node_modules/
 .nrepl-port
 .cljs_node_repl/
 /out/
+/mook.jar

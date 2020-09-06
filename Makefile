@@ -3,3 +3,12 @@ build:
 
 serve:
 	clj --main cljs.main --serve
+
+generate-jar:
+	clojure -A:pack \
+	mach.pack.alpha.skinny \
+	--no-libs \
+	--project-path mook.jar
+
+deploy-to-clojars:
+	env $(shell cat ~/.clojars-credentials) clojure -A:deploy
