@@ -22,10 +22,8 @@
 (extend-type datascript.db/DB
   m/Watchable
   (m/listen! [this key f]
-    (d/listen! this key (fn watch-changes [{:keys [db-after db-before] :as _transaction-data}]
-                          (f {::new-state db-after
-                              ::old-state db-before
-                              }))))
+    (d/listen! this key (fn watch-changes [{:keys [db-after] :as _transaction-data}]
+                          (f {::m/new-state db-after}))))
   (m/unlisten! [this key]
     (d/unlisten! this key)))
 
