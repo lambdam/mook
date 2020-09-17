@@ -2,7 +2,7 @@ node_modules/
 .shadow-cljs/
 /example/public/
 .cpcache/
-/example/target/
+target/
 /flappy-bird-demo-new/
 .nrepl-port
 .cljs_node_repl/
