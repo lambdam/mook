@@ -226,9 +226,9 @@ example](https://github.com/lambdam/mook/blob/14ef9df029ddb8a72ff8b5fed5c0a318c9
 
 The main tools used in Mook are Promises and Hooks.
 
-We could craft names such as "Pook" or "Prooks"... but it doesn't sound well.
-And since promises and monads are conceptually very close, we can say that the
-library is about MOnads and hoOKs.
+We could craft names such as "Pook" or "Prooks"... but that doesn't sound very
+good. And since promises and monads are conceptually very close, we can say that
+the library is about MOnads and hoOKs: "Mook".
 
 ## Todo
 
