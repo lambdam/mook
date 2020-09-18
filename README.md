@@ -215,6 +215,13 @@ commands can be coordinated easily. There is an example of this in the
 [introductory article](https://lambdam.com/blog/2020-09-mook/#mook-book-app) (in
 the `onClick` handler of the `book-detail` component).
 
+Also, I declared [promesa](https://github.com/funcool/promesa) as a Mook
+dependency. This is intentional since it exposes a very nice API to work with
+async logic. **In other words, async logic of Mook commands should be structured
+with promesa.**  
+Check this part of the [TodoMVC
+example](https://github.com/lambdam/mook/blob/14ef9df029ddb8a72ff8b5fed5c0a318c9360fac/examples/todomvc-mook-wrapper/src/todomvc/components.cljs#L42).
+
 ## Why "Mook"
 
 The main tools used in Mook are Promises and Hooks.
