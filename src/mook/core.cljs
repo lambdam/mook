@@ -246,24 +246,24 @@
 ;; # Commands
 
 (s/def ::type keyword?)
-(s/def ::context
+(s/def ::data
   (s/keys :opt [::type]))
-(s/def ::input-context
+(s/def ::input-data
   (s/keys :req [::type]))
 
 (defn ^:private command-dispatch [{::keys [type]}]
   type)
 
 (s/fdef command-dispatch
-  :args (s/cat :context ::input-context)
+  :args (s/cat :data ::input-data)
   :ret ::type)
 
 (defonce ^:private command-handlers*
   (atom {}))
 
-(defn ^:private default-command-handler [{::keys [type] :as context}]
+(defn ^:private default-command-handler [{::keys [type] :as data}]
   (p/rejected (ex-info (str "No dispatch method for type: " type)
-                       context)))
+                       data)))
 
 ;; !!! using multimethod instead of an atom was throwing the following error on refresh with (st/instrument) "activated"
 
@@ -281,8 +281,8 @@
 ;; (defn-spec my-event ...
 ;;   [...])
 
-;; (defmethod mook/command>> ::my-event [context]
-;;   (my-event context))
+;; (defmethod mook/command>> ::my-event [data]
+;;   (my-event data))
 
 (defn register-command! [key handler]
   (swap! command-handlers* assoc key handler)
@@ -292,39 +292,39 @@
   :args (s/cat :key keyword? :handler fn?)
   :ret nil?)
 
-(defn send-command>> [context]
-  (let [handler (or (->> (command-dispatch context) (get @command-handlers*))
+(defn send-command>> [data]
+  (let [handler (or (->> (command-dispatch data) (get @command-handlers*))
                     default-command-handler)]
-    (-> context
+    (-> data
         (merge @stores*)
         handler
         (p/then #(dissoc % ::type)))))
 
 (s/fdef send-command>>
-  :args (s/cat :context ::input-context)
+  :args (s/cat :data ::input-data)
   :ret p/promise?)
 
-(defn chain-command [context]
+(defn chain-command [data]
   (fn chain-command-clsr [prom]
     (p/chain
       prom
-      #(send-command>> (merge % context)))))
+      #(send-command>> (merge % data)))))
 
 (s/fdef chain-command
-  :args (s/cat :context ::input-context)
+  :args (s/cat :data ::input-data)
   :ret fn?)
 
 ;; ---
 
-(defn ^:private chain-context' [handler context]
-  (-> (merge context @stores*)
+(defn ^:private chain-data' [handler data]
+  (-> (merge data @stores*)
       handler))
 
-(s/fdef chain-context'
-  :args (s/cat :handler fn? :context ::context)
-  :ret (s/or :context ::context
+(s/fdef chain-data'
+  :args (s/cat :handler fn? :data ::data)
+  :ret (s/or :data ::data
              :promise p/promise?))
 
-(defn chain-context [handler]
-  (fn [context]
-    (chain-context' handler context)))
+(defn chain-data [handler]
+  (fn [data]
+    (chain-data' handler data)))
