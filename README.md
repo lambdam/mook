@@ -230,6 +230,16 @@ We could craft names such as "Pook" or "Prooks"... but that doesn't sound very
 good. And since promises and monads are conceptually very close, we can say that
 the library is about MOnads and hoOKs: "Mook".
 
+## Examples
+
+I applied Mook to the TodoMVC project and included the sources of the examples
+in the repository, in the `examples` folder:
+
+- TodoMVC with [Mook own React wrapper](https://github.com/lambdam/mook/tree/master/examples/todomvc-mook-wrapper).
+- TodoMVC with the [hicada library](https://github.com/lambdam/mook/tree/master/examples/todomvc-hicada).  
+  [Hicada](https://github.com/rauhs/hicada) is a hiccup compiler for ClojureScript.
+- [COMING SOON] TodoMVC with the helix library.
+
 ## Todo
 
 * [ ] Unit tests
