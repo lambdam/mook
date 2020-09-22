@@ -77,7 +77,7 @@
   (let [todos (m/use-param-state-store
                 ::stores/app-db*
                 {}
-                (fn [db _]
+                (fn [db]
                   (as-> db <>
                     (d/q '[:find [?e ...]
                            :where [?e :todo/title]]
