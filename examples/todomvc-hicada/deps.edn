@@ -10,5 +10,5 @@
         cljsjs/react {:mvn/version "16.13.1-0"}
         funcool/promesa {:mvn/version "5.1.0"}
         cljs-bean {:mvn/version "1.5.0"}}
- :paths ["src" "../src" "resources" "target"]
+ :paths ["src" "../../src" "resources" "target"]
  :aliases {:build {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}}}
