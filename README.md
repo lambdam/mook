@@ -111,7 +111,7 @@ the state stores and modify the state stores.
 
 ### Read the state(s)
 
-Mook defines two hooks: `use-state-store` and `use-param-state-store`.
+Mook defines two hooks: `use-mook-state` and `use-param-mook-state`.
 
 Mook hooks have two arities: the unary one that accepts a map with all
 parameters explicitly given. In a way, this arity acts like labelled arguments
@@ -119,7 +119,7 @@ in other languages (like OCaml for example). Respectively the binary and ternary
 arities with positional arguments act like shorthand versions of the function
 call.
 
-`use-state-store` takes a state store name and a handler. The handler receives
+`use-mook-state` takes a state store name and a handler. The handler receives
 the dereferenced store as its first and only parameter. There are only two ways
 for this hook to fire a re-render:
 1. the result of the handler changes (the handler might close over changing
@@ -130,15 +130,15 @@ values)
 (require '[mook.core :as m])
 
 ;; Arity 1
-(use-state-store {::m/store-key ::local-store*
+(use-mook-state {::m/store-key ::local-store*
                   ::m/handler (fn [store]
                                 (::current-user-id store))})
 
 ;; Arity 2 (shorthand)
-(use-state-store ::db* ::current-user-id)
+(use-mook-state ::db* ::current-user-id)
 ```
 
-A more evolved one (`use-param-state-store`), similar to React behaviour with
+A more evolved one (`use-param-mook-state`), similar to React behaviour with
 component `key` attibute, where the developper controls the data that will
 provoque a new comparison. This hook was crafted to address the fact that
 complex queries in Datascript might be slow, and we don't want it to replay on
@@ -149,12 +149,12 @@ value changes or that the result of a new state of the store changes.
 (require '[mook.core :as m])
 
 ;; Arity 1
-(use-param-state-store {::m/store-key ::db*
+(use-param-mook-state {::m/store-key ::db*
                         ::m/params [current-user-id book-ids]
                         ::m/handler (fn [db] ...)})
 
 ;; Arity 3 (shorthand)
-(use-param-state-store ::db*
+(use-param-mook-state ::db*
                        [current-user-id book-ids]
                        (fn [db] ...))
 ```
