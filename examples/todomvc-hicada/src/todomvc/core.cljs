@@ -1,4 +1,5 @@
 (ns todomvc.core
+  (:require-macros [todomvc.elements :as el])
   (:require [datascript.core :as d]
             [mook.core :as m]
             [mook.react :as r]
@@ -7,18 +8,25 @@
             react
             [react-dom :as react-dom]
             [todomvc.components :as c]
-            [todomvc.elements :as el]))
+            [todomvc.stores :as stores]))
 
+(def wrap-ref-state-stores
+  (m/create-state-store-wrapper!
+    [{::m/store-key ::stores/local-store*
+      ::m/state-key ::stores/local-store
+      ::m/store*    stores/local-store*}
+     {::m/store-key ::stores/app-db*
+      ::m/state-key ::stores/app-db
+      ::m/store*    stores/app-db*}]))
 
 (defn init! []
   (let [out (-> (st/instrument)
                 sort)]
     (js/console.log
       (str "Instrumented functions:\n" (with-out-str (cljs.pprint/pprint out)))))
+  (m/init-mook! {::m/command-middlewares [wrap-ref-state-stores]})
   (react-dom/render
-    (m/mook-state-store-container
-      (el/html
-        [:> c/root]))
+    (el/html [:> c/root])
     (js/document.getElementById "main-app")))
 
 (init!)

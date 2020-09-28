@@ -1,4 +1,5 @@
 (ns todomvc.components
+  (:require-macros [todomvc.elements :as el])
   (:require [cljs-bean.core :as b]
             [clojure.string :as str]
             [datascript.core :as d]
@@ -7,7 +8,6 @@
             [promesa.core :as p]
             [todomvc.boundaries.ui :as b-ui]
             [todomvc.commands :as cmd]
-            [todomvc.elements :as el :include-macros true]
             [todomvc.stores :as stores]))
 
 (defn todo-item [props]
@@ -21,27 +21,24 @@
                     (fn clean []))
                   #js [editing?])
     (el/html
-      [:li {:className (r/classes {:completed completed?
-                                   :editing editing?})}
+      [:li {:class [(when completed? "completed")
+                    (when editing? "editing")]}
        [:div.view
         [:input.toggle {:type "checkbox"
                         :checked completed?
                         :style {:cursor "pointer"}
-                        :onChange #(m/send-command>> {::m/type ::cmd/toggle-todo-status
-                                                      :db/id id})}]
+                        :onChange #(cmd/<toggle-todo-status>> {:db/id id})}]
         [:label {:onDoubleClick (fn [e]
                                   (set-editing? true))}
          title]
         [:button.destroy {:style {:cursor "pointer"}
-                          :onClick #(m/send-command>> {::m/type ::cmd/destroy-todo
-                                                       :db/id id})}]
+                          :onClick #(cmd/<destroy-todo>> {:db/id id})}]
         (let [save-todo>> (fn save-todo>> [e]
                             (let [value (str/trim edit-text)]
                               (when-not (str/blank? value)
                                 (p/chain
-                                  (m/send-command>> {::m/type ::cmd/update-todo
-                                                     :db/id id
-                                                     :todo/title value})
+                                  (cmd/<update-todo>> {:db/id id
+                                                       :todo/title value})
                                   #(set-editing? false)))))]
           [:input.edit {:ref edit-field-ref
                         :value edit-text
@@ -64,16 +61,15 @@
                                        ::b-ui/enter-key (let [value (str/trim title)]
                                                           (.preventDefault %)
                                                           (when-not (str/blank? value)
-                                                            (m/send-command>> {::m/type ::cmd/create-new-todo
-                                                                               :todo/title value})
+                                                            (cmd/<create-new-todo>> {:todo/title value})
                                                             (set-title "")))
                                        nil)
                          :onChange #(-> % .-target .-value set-title)
                          :autoFocus true}]])))
 
 (defn root [props]
-  (let [todos (m/use-param-state-store
-                ::stores/app-db*
+  (let [todos (m/use-param-mook-state
+                ::stores/app-db
                 {}
                 (fn [db]
                   (as-> db <>
@@ -84,7 +80,7 @@
                     (sort-by :todo/created-at
                                #(compare %2 %1)
                                <>))))
-        active-filter (m/use-state-store ::stores/local-store* ::b-ui/active-filter)
+        active-filter (m/use-mook-state ::stores/local-store ::b-ui/active-filter)
         all-completed? (every? :todo/completed? todos)]
     (el/html
       [:*
@@ -95,8 +91,7 @@
            [:section.main
             [:input#toggle-all.toggle-all {:type "checkbox"
                                            :checked all-completed?
-                                           :onChange #(m/send-command>> {::m/type ::cmd/toggle-all
-                                                                         ::b-ui/all-completed? all-completed?})}]
+                                           :onChange #(cmd/<toggle-all>> {::b-ui/all-completed? all-completed?})}]
             [:label {:style {:cursor "pointer"}
                      :htmlFor "toggle-all"}]
             [:ul.todo-list
@@ -119,8 +114,7 @@
                                   (str len " items left")))]
             (let [set-filter! (fn [type]
                                 #(do (.preventDefault %)
-                                     (m/send-command>> {::m/type ::cmd/set-filter
-                                                        ::b-ui/active-filter type})))]
+                                     (cmd/<set-filter>> {::b-ui/active-filter type})))]
               [:ul.filters
                [:li {:style {:cursor "pointer"}}
                 [:a {:onClick (set-filter! :all)
@@ -136,7 +130,7 @@
                  "Completed"]]
                ])
             (when (some :todo/completed? todos)
-              [:button.clear-completed {:onClick #(m/send-command>> {::m/type ::cmd/clear-completed-todos})}
+              [:button.clear-completed {:onClick cmd/<clear-completed-todos>>}
                "Clear completed"])]])]
        [:footer.info
         [:p "Double-click to edit a todo"]
