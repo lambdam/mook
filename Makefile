@@ -10,5 +10,5 @@ generate-jar:
 	--no-libs \
 	--project-path mook.jar
 
-deploy-to-clojars:
+deploy-to-clojars: generate-jar
 	env $(shell cat ~/.clojars-credentials) clojure -A:deploy
