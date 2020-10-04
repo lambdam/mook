@@ -5,6 +5,8 @@
   <artifactId>mook</artifactId>
   <version>0.1.0</version>
   <name>mook</name>
+  <url>https://github.com/lambdam/mook</url>
+  <description>Frontend state mangement library for ClojureScript</description>
   <dependencies>
     <dependency>
       <groupId>cljsjs</groupId>
