@@ -27,22 +27,19 @@
                    :type "checkbox"
                    :checked completed?
                    :style {:cursor "pointer"}
-                   :onChange #(m/send-command>> {::m/type ::cmd/toggle-todo-status
-                                                 :db/id id})})
+                   :onChange #(cmd/<toggle-todo-status>> {:db/id id})})
         (el/label {:onDoubleClick (fn [e]
                                    (set-editing? true))}
           title)
         (el/button {:className "destroy"
                     :style {:cursor "pointer"}
-                    :onClick #(m/send-command>> {::m/type ::cmd/destroy-todo
-                                                 :db/id id})}))
+                    :onClick #(cmd/<destroy-todo>> {:db/id id})}))
       (let [save-todo>> (fn save-todo>> [e]
                           (let [value (str/trim edit-text)]
                             (when-not (str/blank? value)
                               (p/chain
-                                (m/send-command>> {::m/type ::cmd/update-todo
-                                                   :db/id id
-                                                   :todo/title value})
+                                (cmd/<update-todo>> {:db/id id
+                                                     :todo/title value})
                                 #(set-editing? false)))))]
         (el/input {:ref edit-field-ref
                    :className "edit"
@@ -66,16 +63,15 @@
                                ::b-ui/enter-key (let [value (str/trim title)]
                                                   (.preventDefault %)
                                                   (when-not (str/blank? value)
-                                                    (m/send-command>> {::m/type ::cmd/create-new-todo
-                                                                       :todo/title value})
+                                                    (cmd/<create-new-todo>> {:todo/title value})
                                                     (set-title "")))
                                nil)
                  :onChange #(-> % .-target .-value set-title)
                  :autoFocus true}))))
 
 (defn root [props]
-  (let [todos (m/use-param-state-store
-                ::stores/app-db*
+  (let [todos (m/use-param-mook-state
+                ::stores/app-db
                 {}
                 (fn [db]
                   (as-> db <>
@@ -86,7 +82,7 @@
                     (sort-by :todo/created-at
                              #(compare %2 %1)
                              <>))))
-        active-filter (m/use-state-store ::stores/local-store* ::b-ui/active-filter)
+        active-filter (m/use-mook-state ::stores/local-store ::b-ui/active-filter)
         all-completed? (every? :todo/completed? todos)]
     (r/fragment
       (el/section {:className "todoapp"}
@@ -98,8 +94,7 @@
                          :className "toggle-all"
                          :type "checkbox"
                          :checked all-completed?
-                         :onChange #(m/send-command>> {::m/type ::cmd/toggle-all
-                                                       ::b-ui/all-completed? all-completed?})})
+                         :onChange #(cmd/<toggle-all>> {::b-ui/all-completed? all-completed?})})
               (el/label {:style {:cursor "pointer"}
                          :htmlFor "toggle-all"}
                 #_"Mark all as complete")
@@ -126,8 +121,7 @@
                     (str len " items left"))))
               (let [set-filter! (fn [type]
                                   #(do (.preventDefault %)
-                                       (m/send-command>> {::m/type ::cmd/set-filter
-                                                          ::b-ui/active-filter type})))]
+                                       (cmd/<set-filter>> {::b-ui/active-filter type})))]
                 (el/ul {:className "filters"}
                   (el/li {:style {:cursor "pointer"}}
                     (el/a {:onClick (set-filter! :all)
@@ -143,7 +137,7 @@
                       "Completed"))))
               (when (some :todo/completed? todos)
                 (el/button {:className "clear-completed"
-                            :onClick #(m/send-command>> {::m/type ::cmd/clear-completed-todos})}
+                            :onClick #(cmd/<clear-completed-todos>>)}
                   "Clear completed!"))))))
       (el/footer {:className "info"}
         (el/p "Double-click to edit a todo")

@@ -1,9 +1,9 @@
 {:deps {org.clojure/clojure {:mvn/version "1.10.1"}
         org.clojure/clojurescript {:mvn/version "1.10.773"}
+        ;; mook {:local/root "../../mook"}
         cljsjs/react-dom {:mvn/version "16.13.1-0"}
         datascript {:mvn/version "1.0.1"}
         orchestra {:mvn/version "2019.02.06-1"}
-        hicada {:mvn/version "0.1.8"}
         com.bhauman/figwheel-main {:mvn/version "0.2.11"}
         com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
         ;; Mook dependencies
@@ -11,4 +11,4 @@
         funcool/promesa {:mvn/version "5.1.0"}
         cljs-bean {:mvn/version "1.5.0"}}
  :paths ["src" "../../src" "resources" "target"]
- :aliases {:build {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}}}
+ :aliases {:build-dev {:main-opts ["-m" "figwheel.main" "-b" "dev" "-r"]}}}

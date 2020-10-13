@@ -4,28 +4,6 @@
             [promesa.core :as p])
   (:require-macros [mook.core :refer [dev-print!]]))
 
-;; # Hooks and state stores
-
-(defonce ^:private listener-id-counter*
-  (atom 0))
-
-(defonce ^:private stores*
-  (atom {}))
-
-(def ^:private state-stores-context
-  (mr/create-context stores*))
-
-(defn mook-state-store-container [el]
-  (let [provider (::mr/provider state-stores-context)]
-    (provider {:value stores*}
-              el)))
-
-(defn ^:private use-mook-state-stores []
-  (-> state-stores-context
-      ::mr/context
-      mr/use-context
-      deref))
-
 (defprotocol Watchable
   (listen! [this key f])
   (unlisten! [this key]))
@@ -34,40 +12,115 @@
   Watchable
   (listen! [this key f]
     (add-watch this key (fn watch-changes [_key _ref _old-state new-state]
-                          (f {::new-state new-state
-                              ;; ::old-state _old-state
-                              ;; ::ref _ref
-                              ;; ::key _key
-                              }))))
+                          (f {::new-state new-state}))))
   (unlisten! [this key]
     (remove-watch this key)))
 
-(defn register-store! [store-key store]
-  (assert (satisfies? IDeref store)
-          (str "Error on store registration for: " store-key ". A mook store must implement the IDeref protocol"))
-  (assert (satisfies? Watchable store)
-          (str "Error on store registration for: " store-key ". A mook store must implement the mook.core/Watchable protocol"))
-  (swap! stores* assoc store-key store))
+;; Commands and state stores
 
 (s/def ::store-key keyword?)
+(s/def ::state-key keyword?)
+(s/def ::store* #(satisfies? IDeref %))
+(s/def ::state any?)
+(s/def ::new-state any?)
+(s/def ::store-info (s/keys :req [::store-key ::state-key ::store*]))
+(s/def ::store-infos (s/coll-of ::store-info))
+(s/def ::state-transition (s/keys :req [::state-key ::new-state]))
+(s/def ::state-transitions (s/coll-of ::state-transition))
+
+(defonce ^:private store-key->store-info*
+  (atom {}))
+
+(defonce ^:private state-key->store-info*
+  (atom {}))
+
+(defn create-state-store-wrapper [store-infos]
+  (doseq [{::keys [store-key state-key store*] :as store-info} store-infos]
+    (assert (satisfies? IDeref store*)
+            (str "Error on store registration for: " store-key ". A mook store must implement the IDeref protocol"))
+    (assert (satisfies? Watchable store*)
+            (str "Error on store registration for: " store-key ". A mook store must implement the mook.core/Watchable protocol"))
+    (swap! store-key->store-info* assoc store-key store-info)
+    (swap! state-key->store-info* assoc state-key store-info))
+  (fn wrap-data-state-stores [command>>]
+    (let [store-states (reduce (fn [acc store-info]
+                                 (assoc acc
+                                        ;; Store
+                                        (::store-key store-info)
+                                        (::store* store-info)
+                                        ;; State
+                                        (::state-key store-info)
+                                        (-> store-info ::store* deref)))
+                               {}
+                               store-infos)]
+      (fn process-data-state-stores>> [data]
+        (-> (merge data store-states)
+            command>>
+            (p/then
+              (fn [data']
+                (as-> data' <>
+                  ;; Handle declarative state transitions
+                  (if-let [state-transitions (::state-transitions <>)]
+                    (do (doseq [{::keys [state-key new-state]} state-transitions]
+                          (-> (get @state-key->store-info* state-key)
+                              ::store*
+                              (reset! new-state)))
+                        (dissoc <> ::state-transitions))
+                    <>)
+                  ;; Always set the latest version of the states
+                  (reduce-kv (fn [acc _k store-info]
+                               (assoc acc
+                                      (::state-key store-info)
+                                      (-> store-info ::store* deref)))
+                             <>
+                             @store-key->store-info*)))))))))
+
+(s/fdef create-state-store-wrapper
+  :args (s/cat :store-infos ::store-infos)
+  :ret fn?)
+
+;; ---
+
+(def ^:private apply-middlewares*
+  (atom identity))
+
+(defn wrap [cmd]
+  (fn wrapped-command [data]
+    (as-> (@apply-middlewares* cmd) <>
+      (<> data))))
+
+(s/def ::command-middlewares
+  (s/coll-of fn? :kind vector?))
+
+(defn init-mook! [{::keys [command-middlewares] :as data}]
+  (reset! apply-middlewares* (apply comp (reverse command-middlewares))))
+
+(s/fdef init-mook!
+  :args (s/cat :data (s/keys :req [::command-middlewares]))
+  :ret any?)
+
+;; Hooks
+
 (s/def ::params any?)
 (s/def ::handler ifn?)
 (s/def ::debug-info any?)
 
-(s/def ::new-state any?)
 (s/def ::listener-data
   (s/keys :req [::new-state]))
 
-(defn use-state-store
-  ([{::keys [store-key handler debug-info]}]
-   (let [state-store* (as-> (use-mook-state-stores) <>
-                        (get <> store-key)
-                        (do (assert <> (str "State store " store-key " does not exist."))
-                            <>))
-         [value set-value!] (mr/use-state #(let [value (handler @state-store*)]
+(defonce ^:private listener-id-counter*
+  (atom 0))
+
+(defn use-mook-state
+  ([{::keys [state-key handler debug-info]}]
+   (let [store* (as-> (get @state-key->store-info* state-key) <>
+                  (::store* <>)
+                  (do (assert <> (str "Mook state " state-key " does not exist."))
+                      <>))
+         [value set-value!] (mr/use-state #(let [value (handler @store*)]
                                              (dev-print! {:type :first-hook-call
-                                                          :f 'use-state-store
-                                                          :store-key store-key
+                                                          :f 'use-mook-state
+                                                          :state-key state-key
                                                           :handler handler
                                                           :value value
                                                           :debug-info debug-info}
@@ -78,15 +131,15 @@
          last-handler-ref (mr/use-ref handler)]
      (mr/use-effect (fn use-reactive-state-effect []
                       (let [sub-id (swap! listener-id-counter* inc)]
-                        (listen! state-store*
+                        (listen! store*
                                  sub-id
                                  (fn listen-to-store [{::keys [new-state] :as data}]
                                    (s/assert ::listener-data data)
                                    (let [handler' (.-current last-handler-ref)
                                          new-value (let [value (handler' new-state)]
                                                      (dev-print! {:type :watcher-call
-                                                                  :f 'use-state-store
-                                                                  :store-key store-key
+                                                                  :f 'use-mook-state
+                                                                  :state-key state-key
                                                                   :handler handler
                                                                   :value value
                                                                   :debug-info debug-info}
@@ -94,8 +147,8 @@
                                                      value)]
                                      (when (not= new-value (.-current last-value-ref))
                                        (dev-print! {:type :rerender-on-watcher-call
-                                                    :f 'use-state-store
-                                                    :store-key store-key
+                                                    :f 'use-mook-state
+                                                    :state-key state-key
                                                     :handler handler
                                                     :old-value (.-current last-value-ref)
                                                     :new-value new-value
@@ -104,13 +157,13 @@
                                        (set! (.-current last-value-ref) new-value)
                                        (set-value! new-value)))))
                         (fn remove-store-watch []
-                          (unlisten! state-store* sub-id))))
+                          (unlisten! store* sub-id))))
                     #js [])
      (set! (.-current last-handler-ref) handler)
      (when (-> first-call?-ref .-current false?)
-       (let [new-value (handler @state-store*)]
+       (let [new-value (handler @store*)]
          (dev-print! {:type :check-new-value
-                      :f 'use-state-store
+                      :f 'use-mook-state
                       :handler handler
                       :value new-value
                       :debug-info debug-info}
@@ -118,38 +171,39 @@
          ;; !!! Warning : this new value doesn't play well with JS objects
          (when (not= new-value (.-current last-value-ref))
            (dev-print! {:type :rerender-on-new-value
-                        :f 'use-state-store
+                        :f 'use-mook-state
                         :handler handler
                         :old-value (.-current last-value-ref)
                         :new-value new-value
                         :debug-info debug-info}
                        "maroon")
            (set! (.-current last-value-ref) new-value)
+           ;; Fire a re-render
            (set-value! new-value))))
      (set! (.-current first-call?-ref) false)
      value))
-  ([store-key handler] (use-state-store {::store-key store-key
-                                         ::handler  handler})))
+  ([state-key handler] (use-mook-state {::state-key state-key
+                                        ::handler  handler})))
 
-(s/fdef use-state-store
-  :args (s/alt :unary (s/keys :req [::store-key ::handler]
+(s/fdef use-mook-state
+  :args (s/alt :unary (s/keys :req [::state-key ::handler]
                               :opt [::debug-info])
-               :binary (s/cat :store-key ::store-key
+               :binary (s/cat :state-key ::state-key
                               :handler ::handler))
   :ret any?)
 
 ;; ---
 
-(defn use-param-state-store
-  ([{::keys [store-key params handler debug-info]}]
-   (let [state-store* (as-> (use-mook-state-stores) <>
-                        (get <> store-key)
-                        (do (assert <> (str "State store " store-key " does not exist."))
-                            <>))
-         [value set-value!] (mr/use-state #(let [value (handler @state-store*)]
+(defn use-param-mook-state
+  ([{::keys [state-key params handler debug-info]}]
+   (let [store* (as-> (get @state-key->store-info* state-key) <>
+                  (::store* <>)
+                  (do (assert <> (str "Mook state " state-key " does not exist."))
+                      <>))
+         [value set-value!] (mr/use-state #(let [value (handler @store*)]
                                              (dev-print! {:type :first-hook-call
-                                                          :f 'use-param-state-store
-                                                          :store-key store-key
+                                                          :f 'use-param-mook-state
+                                                          :state-key state-key
                                                           :params params
                                                           :value value
                                                           :debug-info debug-info}
@@ -160,7 +214,7 @@
          last-handler-ref (mr/use-ref handler)]
      (mr/use-effect (fn use-reactive-state-effect []
                       (let [sub-id (swap! listener-id-counter* inc)]
-                        (listen! state-store*
+                        (listen! store*
                                  sub-id
                                  (fn listen-to-store [{::keys [new-state] :as data}]
                                    (s/assert ::listener-data data)
@@ -168,8 +222,8 @@
                                          params' (.-current last-params-ref)
                                          new-value (let [value (handler' new-state)]
                                                      (dev-print! {:type :watcher-call
-                                                                  :f 'use-param-state-store
-                                                                  :store-key store-key
+                                                                  :f 'use-param-mook-state
+                                                                  :state-key state-key
                                                                   :params params'
                                                                   :value value
                                                                   :debug-info debug-info}
@@ -177,8 +231,8 @@
                                                      value)]
                                      (when (not= new-value (.-current last-value-ref))
                                        (dev-print! {:type :rerender-on-watcher-call
-                                                    :f 'use-param-state-store
-                                                    :store-key store-key
+                                                    :f 'use-param-mook-state
+                                                    :state-key state-key
                                                     :params params'
                                                     :old-value (.-current last-value-ref)
                                                     :new-value new-value
@@ -187,22 +241,22 @@
                                        (set! (.-current last-value-ref) new-value)
                                        (set-value! new-value)))))
                         (fn remove-store-watch []
-                          (unlisten! state-store* sub-id))))
+                          (unlisten! store* sub-id))))
                     #js [])
      (when (not= params (.-current last-params-ref))
        (set! (.-current last-params-ref) params)
-       (let [new-value (handler @state-store*)]
+       (let [new-value (handler @store*)]
          (dev-print! {:type :check-new-value
-                      :f 'use-param-state-store
-                      :store-key store-key
+                      :f 'use-param-mook-state
+                      :state-key state-key
                       :params params
                       :value new-value
                       :debug-info debug-info}
                      "green")
          (when (not= new-value (.-current last-value-ref))
            (dev-print! {:type :rerender-on-new-value
-                        :f 'use-param-state-store
-                        :store-key store-key
+                        :f 'use-param-mook-state
+                        :state-key state-key
                         :params params
                         :old-value (.-current last-value-ref)
                         :new-value new-value
@@ -212,119 +266,15 @@
            (set-value! new-value))))
      (set! (.-current last-handler-ref) handler)
      value))
-  ([store-key params handler]
-   (use-param-state-store {::store-key store-key
-                           ::params params
-                           ::handler handler})))
+  ([state-key params handler]
+   (use-param-mook-state {::state-key state-key
+                          ::params params
+                          ::handler handler})))
 
-(s/fdef use-param-state-store
-  :args (s/alt :unary (s/keys :req [::store-key ::params ::handler]
+(s/fdef use-param-mook-state
+  :args (s/alt :unary (s/keys :req [::state-key ::params ::handler]
                               :opt [::debug-info])
-               :ternary (s/cat :store-key ::store-key
+               :ternary (s/cat :state-key ::state-key
                                :params ::params
                                :handler ::handler))
   :ret any?)
-
-;; ---
-
-;; Utility function in case we need some values on every component call
-(defn run-on-state-stores [store-keys handler]
-  (let [stores @stores*]
-    (doseq [store-key store-keys]
-      (assert (contains? stores store-key)
-              (str "Try to run handler on non registered store: " store-key)))
-    (->> store-keys
-         (map #(-> (get stores %) deref))
-         (apply handler))))
-
-(s/fdef run-on-state-stores
-  :args (s/cat :store-keys (s/coll-of ::store-key :kind vector?)
-               :handler ifn?)
-  :ret any?)
-
-
-;; # Commands
-
-(s/def ::type keyword?)
-(s/def ::data
-  (s/keys :opt [::type]))
-(s/def ::input-data
-  (s/keys :req [::type]))
-
-(defn ^:private command-dispatch [{::keys [type]}]
-  type)
-
-(s/fdef command-dispatch
-  :args (s/cat :data ::input-data)
-  :ret ::type)
-
-(defonce ^:private command-handlers*
-  (atom {}))
-
-(defn ^:private default-command-handler [{::keys [type] :as data}]
-  (p/rejected (ex-info (str "No dispatch method for type: " type)
-                       data)))
-
-;; !!! using multimethod instead of an atom was throwing the following error on refresh with (st/instrument) "activated"
-
-;; ExceptionsManager.js:82 Error: No protocol method IMultiFn.-add-method defined for type function: function (var_args){
-;; var args = null;
-;; if (arguments.length > 0) {
-;; var G__91127__i = 0, G__91127__a = new Array(arguments.length -  0);
-;; while (G__91127__i < G__91127__a.length) {G__91127__a[G__91127__i] = arguments[G__91127__i + 0]; ++G__91127__i;}
-;;   args = new cljs.core.IndexedSeq(G__91127__a,0,null);
-;; } 
-;; return G__91124__delegate.call(this,args);}
-
-;; I had this type of declarations
-
-;; (defn-spec my-event ...
-;;   [...])
-
-;; (defmethod mook/command>> ::my-event [data]
-;;   (my-event data))
-
-(defn register-command! [key handler]
-  (swap! command-handlers* assoc key handler)
-  nil)
-
-(s/fdef register-command!
-  :args (s/cat :key keyword? :handler fn?)
-  :ret nil?)
-
-(defn send-command>> [data]
-  (let [handler (or (->> (command-dispatch data) (get @command-handlers*))
-                    default-command-handler)]
-    (-> data
-        (merge @stores*)
-        handler
-        (p/then #(dissoc % ::type)))))
-
-(s/fdef send-command>>
-  :args (s/cat :data ::input-data)
-  :ret p/promise?)
-
-(defn chain-command [data]
-  (fn chain-command-clsr [prom]
-    (p/chain
-      prom
-      #(send-command>> (merge % data)))))
-
-(s/fdef chain-command
-  :args (s/cat :data ::input-data)
-  :ret fn?)
-
-;; ---
-
-(defn ^:private chain-data' [handler data]
-  (-> (merge data @stores*)
-      handler))
-
-(s/fdef chain-data'
-  :args (s/cat :handler fn? :data ::data)
-  :ret (s/or :data ::data
-             :promise p/promise?))
-
-(defn chain-data [handler]
-  (fn [data]
-    (chain-data' handler data)))

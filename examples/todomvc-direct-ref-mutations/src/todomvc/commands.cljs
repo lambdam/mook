@@ -10,7 +10,7 @@
 
 (defn-spec create-new-todo>> p/promise?
   {:private true}
-  [data (s/merge ::stores/state-stores
+  [data (s/merge ::stores/stores*
                  (s/keys :req [:todo/title]))]
   (d/transact! (::stores/app-db* data)
                [(merge (select-keys data [:todo/title])
@@ -18,13 +18,14 @@
                         :todo/created-at (js/Date.)})])
   (p/resolved (dissoc data :todo/title)))
 
-(m/register-command! ::create-new-todo create-new-todo>>)
+(def <create-new-todo>>
+  (m/wrap create-new-todo>>))
 
 ;; ---
 
 (defn-spec toggle-todo-status>> p/promise?
   {:private true}
-  [data (s/merge ::stores/state-stores
+  [data (s/merge ::stores/stores*
                  (s/keys :req [:db/id]))]
   (let [app-db* (::stores/app-db* data)]
     (when-let [{:todo/keys [completed?]} (d/pull @app-db* [:todo/completed?] (:db/id data))]
@@ -32,25 +33,27 @@
                                    {:todo/completed? (not completed?)})])))
   (p/resolved (dissoc data :db/id)))
 
-(m/register-command! ::toggle-todo-status toggle-todo-status>>)
+(def <toggle-todo-status>>
+  (m/wrap toggle-todo-status>>))
 
 ;; ---
 
 (defn-spec destroy-todo>> p/promise?
   {:private true}
-  [data (s/merge ::stores/state-stores
+  [data (s/merge ::stores/stores*
                  (s/keys :req [:db/id]))]
   (d/transact! (::stores/app-db* data)
                [[:db.fn/retractEntity (:db/id data)]])
   (p/resolved (dissoc data :db/id)))
 
-(m/register-command! ::destroy-todo destroy-todo>>)
+(def <destroy-todo>>
+  (m/wrap destroy-todo>>))
 
 ;; ---
 
 (defn-spec clear-completed-todos>> p/promise?
   {:private true}
-  [data ::stores/state-stores]
+  [data ::stores/stores*]
   ;; ---
   (let [app-db* (::stores/app-db* data)]
     (as-> @app-db* <>
@@ -61,13 +64,15 @@
       (d/transact! app-db* <>)))
   (p/resolved data))
 
-(m/register-command! ::clear-completed-todos clear-completed-todos>>)
+(defn <clear-completed-todos>> []
+  (as-> (m/wrap clear-completed-todos>>) <>
+    (<> {})))
 
 ;; ---
 
 (defn-spec toggle-all>> p/promise?
   {:private true}
-  [data (s/merge ::stores/state-stores
+  [data (s/merge ::stores/stores*
                  (s/keys :req [::b-ui/all-completed?]))]
   (let [app-db* (::stores/app-db* data)
         all-completed? (::b-ui/all-completed? data)]
@@ -81,26 +86,29 @@
       (d/transact! app-db* <>)))
   (p/resolved (dissoc data ::b-ui/all-completed?)))
 
-(m/register-command! ::toggle-all toggle-all>>)
+(def <toggle-all>>
+  (m/wrap toggle-all>>))
 
 ;; ---
 
 (defn-spec set-filter>> p/promise?
   {:private true}
-  [data (s/merge ::stores/state-stores
+  [data (s/merge ::stores/stores*
                  (s/keys :req [::b-ui/active-filter]))]
   (swap! (::stores/local-store* data) merge (select-keys data [::b-ui/active-filter]))
   (p/resolved (dissoc data ::b-ui/active-filter)))
 
-(m/register-command! ::set-filter set-filter>>)
+(def <set-filter>>
+  (m/wrap set-filter>>))
 
 ;; ---
 
 (defn-spec update-todo>> p/promise?
   {:private true}
-  [data (s/merge ::stores/state-stores
+  [data (s/merge ::stores/stores*
                  (s/keys :req [:db/id :todo/title]))]
   (d/transact! (::stores/app-db* data) [(select-keys data [:db/id :todo/title])])
   (p/resolved (dissoc data :db/id :todo/title)))
 
-(m/register-command! ::update-todo update-todo>>)
+(def <update-todo>>
+  (m/wrap update-todo>>))
