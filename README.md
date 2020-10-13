@@ -73,16 +73,16 @@ Typically two types of state stores can be used:
  :bar ...}
 
 ;; Mook approach with state stores
-{:local-store {...}             ;; <- changes to local-store re-render only concerned UI parts
- :app-db <Datascript db value>} ;; <- changes to app-db re-render only concerned UI parts
+{:my.app/local-store {...}             ;; <- changes to local-store re-render only concerned UI parts
+ :my.app/app-db <Datascript db value>} ;; <- changes to app-db re-render only concerned UI parts
 ```
 
 This is an optimization meant to fire re-renders only by store. It is useful for
 complex Datascript queries that can be costly on every re-render.
 
-This optimization is variation around the "one source of thruth" concept since
-every state store is held in one big hashmap with keys corresponding to the
-state store name.
+This optimization is a variation around the "one source of thruth" concept since
+at every point in time, Mook can give an immutable hashmap of the state where keys
+are the names of the "sub-states".
 
 ### Setup
 
