@@ -10,8 +10,8 @@
             [todomvc.components :as c]
             [todomvc.stores :as stores]))
 
-(def wrap-ref-state-stores
-  (m/create-state-store-wrapper!
+(def wrap-state-stores
+  (m/create-state-store-wrapper
     [{::m/store-key ::stores/local-store*
       ::m/state-key ::stores/local-store
       ::m/store*    stores/local-store*}
@@ -24,7 +24,7 @@
                 sort)]
     (js/console.log
       (str "Instrumented functions:\n" (with-out-str (cljs.pprint/pprint out)))))
-  (m/init-mook! {::m/command-middlewares [wrap-ref-state-stores]})
+  (m/init-mook! {::m/command-middlewares [wrap-state-stores]})
   (react-dom/render
     (el/html [:> c/root])
     (js/document.getElementById "main-app")))

@@ -34,7 +34,7 @@
 (defonce ^:private state-key->store-info*
   (atom {}))
 
-(defn create-state-store-wrapper! [store-infos]
+(defn create-state-store-wrapper [store-infos]
   (doseq [{::keys [store-key state-key store*] :as store-info} store-infos]
     (assert (satisfies? IDeref store*)
             (str "Error on store registration for: " store-key ". A mook store must implement the IDeref protocol"))
@@ -75,7 +75,7 @@
                              <>
                              @store-key->store-info*)))))))))
 
-(s/fdef create-state-store-wrapper!
+(s/fdef create-state-store-wrapper
   :args (s/cat :store-infos ::store-infos)
   :ret fn?)
 

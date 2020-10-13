@@ -118,8 +118,8 @@ Example:
    ...})
 
 ;; State stores middleware. Mandatory!
-(def wrap-ref-state-stores
-  (m/create-state-store-wrapper!
+(def wrap-state-stores
+  (m/create-state-store-wrapper
     [{::m/store-key ::local-store*
       ::m/state-key ::local-store
       ::m/store*    local-store*}
@@ -137,7 +137,7 @@ Example:
                   data')))))
 
 (m/init-mook!
-  {::m/command-middlewares [wrap-ref-state-stores
+  {::m/command-middlewares [wrap-state-stores
                             wrap-console-log
                             ;; Add as many middlewares as you wish.
                             ;; They will be applied in the declared order.
