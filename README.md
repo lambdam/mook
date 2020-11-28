@@ -102,6 +102,7 @@ Example:
 
 (require '[mook.core :as m])
 (require '[promesa.core :as p])
+(require '[datascript.core :as d])
 
 ;; Datascript (structured business logic)
 
@@ -205,7 +206,7 @@ values)
                                (::current-user-id state))})
 
 ;; Arity 2 (shorthand)
-(use-mook-state ::db* ::current-user-id)
+(use-mook-state ::local-store ::current-user-id)
 ```
 
 A more evolved one (`use-param-mook-state`), similar to React behaviour with
